@@ -20,8 +20,8 @@ CacheStorage.prototype.match=function(){return sm.apply(this,arguments).then(cle
 })();
 
 /* SnakeNest service worker — cache name comes from the app version (set by build.py) */
-var VERSION = 'snakenest-0.4.0';
-var SHELL = ['./', './manifest.json', './icon-192.png', './icon-512.png', './privacy_policy.html', './img/sprites.png', './img/cobra_blue.png', './img/cobra_red.png'];
+var VERSION = 'snakenest-0.4.1';
+var SHELL = ['./', './manifest.json', './icon-192.png', './icon-512.png', './privacy_policy.html', './img/sprites.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(VERSION).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));
 });
