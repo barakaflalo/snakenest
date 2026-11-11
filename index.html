@@ -44,7 +44,7 @@ body.th-day .btn.pri{color:#fff}
 body.th-day .hwrap{background:linear-gradient(180deg,rgba(246,241,230,.85),rgba(246,241,230,.35) 40%,rgba(246,241,230,.9))}
 .htop{display:flex;justify-content:space-between;gap:8px}
 .htop .grp{display:flex;gap:8px}
-.logo{text-align:center;margin:27vh 0 2vh}
+.logo{text-align:center;margin:22vh 0 1.5vh}
 .logo h1{margin:0;font-size:46px;letter-spacing:.5px;font-weight:900;background:linear-gradient(90deg,var(--acc2),var(--acc));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 10px rgba(0,0,0,.6))}
 .logo p{margin:6px 0 0;color:var(--txt);opacity:.85;font-size:15px}
 .menu{display:grid;gap:9px;margin-bottom:auto;max-width:460px;width:100%;align-self:center}
@@ -193,6 +193,25 @@ body.pad-on .shoot{display:none!important}
 
 .bar.swap .p1{background:linear-gradient(90deg,#a855f7,#e2b4ff)}
 .bar.swap .p2{background:linear-gradient(90deg,#38c172,#9ff0b8)}
+
+.mrow{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.mrow .mb{font-size:16px;padding:10px 12px;gap:8px}
+.mrow .mb .em{font-size:22px;width:26px}
+.coinbar{display:flex;align-items:center;gap:10px;font-size:26px}
+.coinbar b{color:var(--acc)}
+.coinbar .mut{font-size:14px}
+.upg,.achc{display:flex;align-items:center;gap:12px}
+.uic{font-size:30px;width:42px;text-align:center}
+.ubody{flex:1;display:flex;flex-direction:column;gap:3px}
+.udots{display:flex;gap:5px;margin-top:4px}
+.udots i{width:16px;height:6px;border-radius:3px;background:var(--line)}
+.udots i.on{background:var(--acc)}
+.umax{color:var(--ok);font-weight:800}
+.abar{height:7px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:4px}
+.abar i{display:block;height:100%;background:var(--acc)}
+.arew{font-weight:800;color:var(--acc);white-space:nowrap}
+.achc.ok{border-color:var(--acc)}
+.achc:not(.ok) .uic{filter:grayscale(.8);opacity:.7}
 </style>
 </head>
 <body>
@@ -201,7 +220,7 @@ body.pad-on .shoot{display:none!important}
   <div class="hwrap">
     <div class="htop">
       <div class="grp"><button class="ib" id="hTheme" aria-label="theme">◐</button><button class="ib" id="hSet" aria-label="settings">⚙️</button></div>
-      <div class="grp"><button class="ib" id="hAbout" aria-label="about">ℹ️</button></div>
+      <div class="grp"><button class="ib" data-go="rules" aria-label="how to play">❓</button><button class="ib" id="hAbout" aria-label="about">ℹ️</button></div>
     </div>
     <div class="logo"><h1>SnakeNest</h1><p data-t="tagline"></p></div>
     <div class="menu">
@@ -209,9 +228,9 @@ body.pad-on .shoot{display:none!important}
       <button class="mb" data-go="duel"><span class="em">⚔️</span><span><span data-t="play_duel"></span><small id="hDuelSub"></small></span></button>
       <button class="mb" data-go="online"><span class="em">🌐</span><span><span data-t="play_online"></span><small id="hOnSub"></small></span></button>
       <button class="mb" data-go="daily"><span class="em">📅</span><span><span data-t="play_daily"></span><small id="hDailySub"></small></span></button>
-      <button class="mb" data-go="gallery"><span class="em">🖼️</span><span><span data-t="gallery"></span><small id="hGalSub"></small></span></button>
-      <button class="mb" data-go="skins"><span class="em">🎨</span><span><span data-t="skins"></span><small id="hSkinSub"></small></span></button>
-      <button class="mb" data-go="rules"><span class="em">❓</span><span data-t="howto"></span></button>
+      <div class="mrow"><button class="mb" data-go="gallery"><span class="em">🖼️</span><span><span data-t="gallery"></span><small id="hGalSub"></small></span></button><button class="mb" data-go="skins"><span class="em">🎨</span><span><span data-t="skins"></span><small id="hSkinSub"></small></span></button></div>
+      <div class="mrow"><button class="mb" data-go="shop"><span class="em">🛒</span><span><span data-t="sh_title"></span><small id="hShopSub"></small></span></button><button class="mb" data-go="ach"><span class="em">🏆</span><span><span data-t="ach_title"></span><small id="hAchSub"></small></span></button></div>
+
     </div>
     <div class="badge">AppNest · <b>SnakeNest</b> · v<span class="ver"></span></div>
   </div>
@@ -224,6 +243,9 @@ body.pad-on .shoot{display:none!important}
   <div class="body"><div class="card"><p style="margin:0;line-height:1.55" data-t="duel_desc"></p></div><div class="bots" id="bots"></div><button class="btn pri" id="duelGo">⚔️ <span data-t="start"></span></button></div></section>
 
 <section class="screen" id="online"><div class="top"><button class="bk" data-back></button><h2 data-t="play_online"></h2></div><div class="body" id="onBody"></div></section>
+
+<section class="screen" id="shop"><div class="top"><button class="bk" data-back></button><h2 data-t="sh_title"></h2></div><div class="body" id="shopBody"></div></section>
+<section class="screen" id="ach"><div class="top"><button class="bk" data-back></button><h2 data-t="ach_title"></h2><span class="mut" id="achCount"></span></div><div class="body" id="achBody"></div></section>
 
 <section class="screen" id="daily"><div class="top"><button class="bk" data-back></button><h2 data-t="daily_title"></h2></div>
   <div class="body"><div class="card" style="text-align:center"><div style="font-size:54px" id="dIcon">📅</div><h3 id="dDate" style="margin:6px 0"></h3><p class="mut" data-t="daily_desc"></p><p id="dInfo" style="font-weight:700"></p></div><button class="btn pri" id="dailyGo">▶ <span data-t="start"></span></button></div></section>
@@ -588,6 +610,12 @@ function create(cfg) {
   }
   for (var i = 0; i < N; i++) if (S.grid[i] === SEA) S.seaTotal++;
   addSnake(S, 1, Math.floor(W / 2), 0, 2, cfg.lives);
+  var up = cfg.up, p1 = S.snakes[0]; p1.mag = 0; p1.dur = 1; p1.shield = 0;
+  if (up) {
+    p1.base = p1.speed = 12.5 * (1 + 0.04 * (up.speed || 0));
+    if (up.ammo) { p1.ammo = 'venom'; p1.ammoN = 1 + up.ammo; }
+    p1.lives += up.life || 0; p1.mag = up.magnet || 0; p1.dur = 1 + 0.2 * (up.dur || 0); p1.shield = up.shield || 0;
+  }
   if (cfg.rival) addSnake(S, 2, Math.floor(W / 2), H - 1, 0, cfg.duel ? cfg.lives : 999);
   function seaSpot() {
     for (var k = 0; k < 500; k++) {
@@ -735,10 +763,11 @@ function items(S) {
 }
 function pickup(S, s) {
   for (var i = S.items.length - 1; i >= 0; i--) {
-    var it = S.items[i]; if (it.x !== s.x || it.y !== s.y) continue;
+    var it = S.items[i], mg = s.mag || 0; if (Math.abs(it.x - s.x) > mg || Math.abs(it.y - s.y) > mg) continue;
     S.items.splice(i, 1);
-    if (it.type === 'apple') { s.fast = 5; if (s.id === 1) S.score += 250; }
-    else if (it.type === 'gapple') S.freeze = 4.5;
+    var du = s.dur || 1;
+    if (it.type === 'apple') { s.fast = 5 * du; if (s.id === 1) S.score += 250; }
+    else if (it.type === 'gapple') S.freeze = 4.5 * du;
     else if (it.type === 'bomb') {
       for (var b = 0; b < S.balls.length; b++) { var o = S.balls[b]; if (Math.hypot(o.x - s.x, o.y - s.y) < 9) { o.stun = 5; } }
       for (var c = 0; c < S.crabs.length; c++) { S.crabs[c].gone = 8; }
@@ -783,12 +812,16 @@ function moveSnake(S, s) {
     }
   }
   if (S.grid[c] === SEA) { S.trail[c] = s.id; s.trail.push(c); if (S.items.length) pickup(S, s); }
+  else if (s.mag && S.items.length) pickup(S, s);
   else if (s.trail.length) capture(S, s);
 }
 
 function snakeById(S, id) { for (var i = 0; i < S.snakes.length; i++) if (S.snakes[i].id === id) return S.snakes[i]; return null; }
 
 function kill(S, s, why) {
+  if (s.shield > 0 && s.dead <= 0 && why !== 'self' && why !== 'head') {
+    s.shield--; s.inv = 1.6; S.events.push({ t: 'shield', id: s.id, x: s.x, y: s.y }); return;
+  }
   if (s.dead > 0) return;
   for (var i = 0; i < s.trail.length; i++) if (S.trail[s.trail[i]] === s.id) S.trail[s.trail[i]] = 0;
   s.trail = []; s.lives--; s.deaths++; s.dead = (s.id === 2 && !S.cfg.duel) ? 2.5 : 0.9; s.moving = false; s.want = null;
@@ -925,7 +958,7 @@ function collide(S) {
       var cx = Math.floor(pts[j][0]), cy = Math.floor(pts[j][1]);
       if (!inB(S, cx, cy)) continue;
       var tr = S.trail[cy * S.W + cx];
-      if (tr) { var o = snakeById(S, tr); if (o && o.dead <= 0) { S.events.push({ t: 'hit', id: o.id, x: cx, y: cy }); kill(S, o, 'ball'); } }
+      if (tr) { var o = snakeById(S, tr); if (o && o.dead <= 0 && o.inv <= 0) { S.events.push({ t: 'hit', id: o.id, x: cx, y: cy }); kill(S, o, 'ball'); } }
     }
     for (j = 0; j < S.snakes.length; j++) {
       s = S.snakes[j];
@@ -1181,6 +1214,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API; else 
 </script>
 <script>var LANG = {
 he: {
+  sh_title: "חנות", ach_title: "הישגים", coins: "מטבעות", buy: "קנה", maxed: "מקסימום", no_coins: "אין מספיק מטבעות", bought: "שודרג!", up_note: "השדרוגים פועלים בשלבים, באתגר היומי ונגד המחשב — לא באונליין, כדי שהקרב מול חבר יהיה הוגן.", res_coins: "מטבעות", ach_got: "הישג: {n}", t_shield: "המגן הציל את הזנב!", lvl_of: "רמה {a}/{b}", ach_count: "{a} מתוך {b}", up_speed: "נחש מהיר", up_speed_d: "+4% מהירות בכל רמה", up_ammo: "תחמושת התחלתית", up_ammo_d: "מתחילים כל שלב עם יריות ארס (2/3/4)", up_magnet: "מגנט בונוסים", up_magnet_d: "אוסף בונוסים מרחוק — משבצת או שתיים מהראש", up_dur: "בונוסים ארוכים", up_dur_d: "האצה והקפאה נמשכות 20% יותר בכל רמה", up_life: "חיים נוספים", up_life_d: "+1 חיים בתחילת כל שלב", up_shield: "מגן זנב", up_shield_d: "פעם אחת בכל שלב, פגיעה בזנב לא פוסלת", a_cap1: "צעד ראשון", a_cap1_d: "סגור את השטח הראשון שלך", a_big: "סגירה ענקית", a_big_d: "סגור 25% מהים במכה אחת", a_combo: "קומבו מטורף", a_combo_d: "הגע לקומבו x5", a_boss1: "צייד בוסים", a_boss1_d: "נצח בוס ראשון", a_boss6: "מלך הנחשים", a_boss6_d: "נצח את כל ששת הבוסים", a_world1: "כובש המדבר", a_world1_d: "סיים את כל שלבי עולם 1", a_st30: "אספן כוכבים", a_st30_d: "אסוף 30 כוכבים", a_st120: "אגדה", a_st120_d: "אסוף 120 כוכבים", a_cuts: "מספריים", a_cuts_d: "חתוך 10 זנבות", a_paras: "ארסי", a_paras_d: "שתק יריבים 10 פעמים", a_shots: "צלף", a_shots_d: "ירה 100 יריות", a_items: "אספן", a_items_d: "אסוף 50 בונוסים", a_champ: "אלוף האלופים", a_champ_d: "נצח את המחשב ברמת אלוף", a_online: "קרב ראשון", a_online_d: "נצח חבר באונליין", a_streak: "נאמן", a_streak_d: "רצף של 7 ימים באתגר היומי", a_pics: "אוצר", a_pics_d: "פתח 20 תמונות בגלריה", a_clean: "בלי שריטה", a_clean_d: "נצח בוס בלי לאבד חיים", a_rich: "עשיר", a_rich_d: "הרווח 1,000 מטבעות",
   play_online: 'אונליין עם חבר', on_sub: 'קרב נחשים עם קול', on_desc: 'קרב נחשים מול חבר: כל אחד סוגר שטחים בצבע שלו, יורה, וחותך לשני את הזנב. מדברים תוך כדי משחק.', on_host: 'פתח חדר', on_join: 'יש לך קוד? הצטרף', on_enter: 'קוד', on_code: 'קוד החדר', on_invite: 'הזמן בוואטסאפ', on_copy: 'העתק קישור', on_copied: 'הקישור הועתק', on_inv_txt: 'בוא לקרב נחשים נגדי:', on_waiting: 'מחכה שהחבר יצטרף…', on_connecting: 'מתחבר…', on_open: 'מחוברים!', on_reconn: 'מתחבר מחדש…', on_start: 'התחל קרב', on_wait_host: 'מחכים שהמארח יתחיל', on_leave: 'עזוב את החדר', on_back_room: 'חזרה לחדר', seat_host: 'מארח', seat_guest: 'אורח', seat_empty: 'מקום פנוי', on_notfound: 'החדר לא נמצא — בדוק את הקוד', on_full: 'החדר מלא', on_err: 'החיבור נכשל — נסה שוב', v_ptt: 'לחץ ודבר', v_open: 'מיקרופון פתוח', v_msg: 'הודעה קולית', v_talking: '{n} מדבר', v_tap: 'הקש כדי לשמוע', v_denied: 'אין גישה למיקרופון', v_privacy: 'הקול עובר ישירות בין הטלפונים ולא נשמר', on_ver: 'לחבר יש גרסה אחרת של המשחק — כדאי לעדכן', on_lost: 'החיבור עם החבר נותק… מחכים', friend: 'חבר',
   am_venom: 'ארס', am_fire: 'אש', am_ice: 'קרח', am_bolt: 'ברק', t_para_hit: 'שיתקת אותו!', t_para_me: 'שותקת!', r10: 'תחמושת: אסוף 🧪 ארס, 🔥 אש, ❄️ קרח או ⚡ ברק — כל אחד נותן 3 יריות, והכפתור העגול יורק בכיוון שאתה זז. ארס משתק את היריב ויצורים, אש שורפת יצור ומעלימה אותו לכמה שניות, קרח מקפיא, וברק חותך את הזנב של היריב. גם המחשב והבוסים יורים — תזוז!',
   w4: 'יער הקסמים', w5: 'ממלכת הקרח', w6: 'הר הגעש', w4d: 'פטריות זוהרות, מכשפות וצבאים עתיקים', w5d: 'ארמונות קרח, דובים וזוהר צפוני', w6d: 'נהרות לבה, דרקונים ונפחי אש', w1: 'נווה המדבר', w2: 'הג׳ונגל הפראי', w3: 'ממלכת הרוחות', w1d: 'שווקים, דיונות וארמונות חול', w2d: 'נמרים, ציידים ושבילים בין העצים', w3d: 'מקדשים, קסמים וכשפים עתיקים', world_n: 'עולם {n}',
@@ -1227,6 +1261,7 @@ he: {
   daily_res: 'אתגר יומי', new_skin: 'נחש חדש נפתח: {s}!', time_left: 'זמן', lives: 'חיים'
 },
 en: {
+  sh_title: "Shop", ach_title: "Achievements", coins: "Coins", buy: "Buy", maxed: "Max", no_coins: "Not enough coins", bought: "Upgraded!", up_note: "Upgrades work in levels, the daily challenge and vs computer — not online, so battles with friends stay fair.", res_coins: "Coins", ach_got: "Achievement: {n}", t_shield: "The shield saved your tail!", lvl_of: "Level {a}/{b}", ach_count: "{a} of {b}", up_speed: "Fast snake", up_speed_d: "+4% speed per level", up_ammo: "Starting ammo", up_ammo_d: "Start every level with venom shots (2/3/4)", up_magnet: "Bonus magnet", up_magnet_d: "Grab bonuses from a distance — one or two cells from your head", up_dur: "Longer bonuses", up_dur_d: "Speed and freeze last 20% longer per level", up_life: "Extra life", up_life_d: "+1 life at the start of every level", up_shield: "Tail shield", up_shield_d: "Once per level, a hit on your tail doesn’t count", a_cap1: "First step", a_cap1_d: "Close your first area", a_big: "Huge capture", a_big_d: "Close 25% of the sea in one go", a_combo: "Crazy combo", a_combo_d: "Reach a x5 combo", a_boss1: "Boss hunter", a_boss1_d: "Beat your first boss", a_boss6: "Snake king", a_boss6_d: "Beat all six bosses", a_world1: "Desert conqueror", a_world1_d: "Finish every level of world 1", a_st30: "Star collector", a_st30_d: "Collect 30 stars", a_st120: "Legend", a_st120_d: "Collect 120 stars", a_cuts: "Scissors", a_cuts_d: "Cut 10 tails", a_paras: "Venomous", a_paras_d: "Paralyze rivals 10 times", a_shots: "Sharpshooter", a_shots_d: "Fire 100 shots", a_items: "Collector", a_items_d: "Collect 50 bonuses", a_champ: "Champion of champions", a_champ_d: "Beat the computer on Champion", a_online: "First battle", a_online_d: "Beat a friend online", a_streak: "Loyal", a_streak_d: "A 7-day daily challenge streak", a_pics: "Treasure", a_pics_d: "Unlock 20 gallery pictures", a_clean: "Not a scratch", a_clean_d: "Beat a boss without losing a life", a_rich: "Rich", a_rich_d: "Earn 1,000 coins",
   play_online: 'Online with a friend', on_sub: 'Snake battle with voice', on_desc: 'A snake battle against a friend: each closes land in their own color, shoots, and cuts the other’s tail. Talk while you play.', on_host: 'Open a room', on_join: 'Got a code? Join', on_enter: 'Code', on_code: 'Room code', on_invite: 'Invite on WhatsApp', on_copy: 'Copy link', on_copied: 'Link copied', on_inv_txt: 'come battle my snake:', on_waiting: 'Waiting for your friend…', on_connecting: 'Connecting…', on_open: 'Connected!', on_reconn: 'Reconnecting…', on_start: 'Start battle', on_wait_host: 'Waiting for the host to start', on_leave: 'Leave room', on_back_room: 'Back to the room', seat_host: 'Host', seat_guest: 'Guest', seat_empty: 'Free seat', on_notfound: 'Room not found — check the code', on_full: 'The room is full', on_err: 'Connection failed — try again', v_ptt: 'Push to talk', v_open: 'Open mic', v_msg: 'Voice message', v_talking: '{n} is talking', v_tap: 'Tap to listen', v_denied: 'No microphone access', v_privacy: 'Voice goes directly between the phones and is not saved', on_ver: 'Your friend has another game version — worth updating', on_lost: 'Lost connection with your friend… waiting', friend: 'Friend',
   am_venom: 'Venom', am_fire: 'Fire', am_ice: 'Ice', am_bolt: 'Bolt', t_para_hit: 'You paralyzed it!', t_para_me: 'Paralyzed!', r10: 'Ammo: grab 🧪 venom, 🔥 fire, ❄️ ice or ⚡ bolt — each gives 3 shots, and the round button spits in the direction you move. Venom paralyzes rivals and creatures, fire burns a creature away for a few seconds, ice freezes, and a bolt cuts the rival’s tail. The computer and bosses shoot too — keep moving!',
   w4: 'Enchanted Forest', w5: 'Frost Kingdom', w6: 'Volcano', w4d: 'Glowing mushrooms, witches and ancient stags', w5d: 'Ice palaces, bears and northern lights', w6d: 'Lava rivers, dragons and fire smiths', w1: 'Desert Oasis', w2: 'Wild Jungle', w3: 'Spirit Kingdom', w1d: 'Markets, dunes and sand palaces', w2d: 'Leopards, hunters and forest trails', w3d: 'Temples, magic and ancient spells', world_n: 'World {n}',
@@ -1273,6 +1308,7 @@ en: {
   daily_res: 'Daily challenge', new_skin: 'New snake unlocked: {s}!', time_left: 'Time', lives: 'Lives'
 },
 ru: {
+  sh_title: "Магазин", ach_title: "Достижения", coins: "Монеты", buy: "Купить", maxed: "Макс.", no_coins: "Не хватает монет", bought: "Улучшено!", up_note: "Улучшения работают в уровнях, задании дня и против компьютера — не онлайн, чтобы битва с другом была честной.", res_coins: "Монеты", ach_got: "Достижение: {n}", t_shield: "Щит спас хвост!", lvl_of: "Уровень {a}/{b}", ach_count: "{a} из {b}", up_speed: "Быстрая змея", up_speed_d: "+4% скорости за уровень", up_ammo: "Стартовые патроны", up_ammo_d: "Каждый уровень начинается с ядом (2/3/4)", up_magnet: "Магнит бонусов", up_magnet_d: "Собирает бонусы на расстоянии — 1–2 клетки от головы", up_dur: "Долгие бонусы", up_dur_d: "Ускорение и заморозка дольше на 20% за уровень", up_life: "Лишняя жизнь", up_life_d: "+1 жизнь в начале каждого уровня", up_shield: "Щит хвоста", up_shield_d: "Раз за уровень удар по хвосту не считается", a_cap1: "Первый шаг", a_cap1_d: "Захвати первый участок", a_big: "Огромный захват", a_big_d: "Захвати 25% моря за раз", a_combo: "Безумное комбо", a_combo_d: "Достигни комбо x5", a_boss1: "Охотник на боссов", a_boss1_d: "Победи первого босса", a_boss6: "Король змей", a_boss6_d: "Победи всех шесть боссов", a_world1: "Покоритель пустыни", a_world1_d: "Пройди все уровни мира 1", a_st30: "Собиратель звёзд", a_st30_d: "Собери 30 звёзд", a_st120: "Легенда", a_st120_d: "Собери 120 звёзд", a_cuts: "Ножницы", a_cuts_d: "Перережь 10 хвостов", a_paras: "Ядовитый", a_paras_d: "Парализуй соперников 10 раз", a_shots: "Снайпер", a_shots_d: "Сделай 100 выстрелов", a_items: "Коллекционер", a_items_d: "Собери 50 бонусов", a_champ: "Чемпион чемпионов", a_champ_d: "Победи компьютер на уровне «Чемпион»", a_online: "Первая битва", a_online_d: "Победи друга онлайн", a_streak: "Верный", a_streak_d: "Серия 7 дней в задании дня", a_pics: "Сокровище", a_pics_d: "Открой 20 картин", a_clean: "Ни царапины", a_clean_d: "Победи босса без потери жизни", a_rich: "Богач", a_rich_d: "Заработай 1000 монет",
   play_online: 'Онлайн с другом', on_sub: 'Битва змей с голосом', on_desc: 'Битва змей против друга: каждый захватывает землю своим цветом, стреляет и режет хвост другому. Общайтесь во время игры.', on_host: 'Создать комнату', on_join: 'Есть код? Войти', on_enter: 'Код', on_code: 'Код комнаты', on_invite: 'Пригласить в WhatsApp', on_copy: 'Копировать ссылку', on_copied: 'Ссылка скопирована', on_inv_txt: 'давай сразимся змеями:', on_waiting: 'Ждём друга…', on_connecting: 'Подключение…', on_open: 'Подключено!', on_reconn: 'Переподключение…', on_start: 'Начать битву', on_wait_host: 'Ждём, пока хозяин начнёт', on_leave: 'Выйти из комнаты', on_back_room: 'Назад в комнату', seat_host: 'Хозяин', seat_guest: 'Гость', seat_empty: 'Свободно', on_notfound: 'Комната не найдена — проверь код', on_full: 'Комната заполнена', on_err: 'Не удалось подключиться — попробуй ещё', v_ptt: 'Нажми и говори', v_open: 'Открытый микрофон', v_msg: 'Голосовое', v_talking: '{n} говорит', v_tap: 'Нажми, чтобы услышать', v_denied: 'Нет доступа к микрофону', v_privacy: 'Голос идёт напрямую между телефонами и не сохраняется', on_ver: 'У друга другая версия игры — стоит обновить', on_lost: 'Связь с другом потеряна… ждём', friend: 'Друг',
   am_venom: 'Яд', am_fire: 'Огонь', am_ice: 'Лёд', am_bolt: 'Молния', t_para_hit: 'Ты его парализовал!', t_para_me: 'Паралич!', r10: 'Боеприпасы: собирай 🧪 яд, 🔥 огонь, ❄️ лёд или ⚡ молнию — каждый даёт 3 выстрела, а круглая кнопка плюёт туда, куда ты движешься. Яд парализует соперника и существ, огонь сжигает существо на несколько секунд, лёд замораживает, молния перерезает хвост соперника. Компьютер и боссы тоже стреляют — двигайся!',
   w4: 'Зачарованный лес', w5: 'Ледяное царство', w6: 'Вулкан', w4d: 'Светящиеся грибы, ведьмы и древние олени', w5d: 'Ледяные дворцы, медведи и северное сияние', w6d: 'Реки лавы, драконы и огненные кузнецы', w1: 'Оазис в пустыне', w2: 'Дикие джунгли', w3: 'Царство духов', w1d: 'Рынки, дюны и песчаные дворцы', w2d: 'Леопарды, охотники и лесные тропы', w3d: 'Храмы, магия и древние чары', world_n: 'Мир {n}',
@@ -1319,6 +1355,7 @@ ru: {
   daily_res: 'Задание дня', new_skin: 'Новая змея: {s}!', time_left: 'Время', lives: 'Жизни'
 },
 es: {
+  sh_title: "Tienda", ach_title: "Logros", coins: "Monedas", buy: "Comprar", maxed: "Máx.", no_coins: "No tienes monedas suficientes", bought: "¡Mejorado!", up_note: "Las mejoras funcionan en niveles, reto diario y contra la máquina — no online, para que la batalla con amigos sea justa.", res_coins: "Monedas", ach_got: "Logro: {n}", t_shield: "¡El escudo salvó tu cola!", lvl_of: "Nivel {a}/{b}", ach_count: "{a} de {b}", up_speed: "Serpiente rápida", up_speed_d: "+4% de velocidad por nivel", up_ammo: "Munición inicial", up_ammo_d: "Empieza cada nivel con veneno (2/3/4)", up_magnet: "Imán de bonos", up_magnet_d: "Recoge bonos a distancia — una o dos casillas", up_dur: "Bonos largos", up_dur_d: "Velocidad y congelación duran 20% más por nivel", up_life: "Vida extra", up_life_d: "+1 vida al inicio de cada nivel", up_shield: "Escudo de cola", up_shield_d: "Una vez por nivel, un golpe en la cola no cuenta", a_cap1: "Primer paso", a_cap1_d: "Cierra tu primera zona", a_big: "Captura enorme", a_big_d: "Cierra el 25% del mar de una vez", a_combo: "Combo loco", a_combo_d: "Llega a un combo x5", a_boss1: "Cazajefes", a_boss1_d: "Vence a tu primer jefe", a_boss6: "Rey serpiente", a_boss6_d: "Vence a los seis jefes", a_world1: "Conquistador del desierto", a_world1_d: "Termina todos los niveles del mundo 1", a_st30: "Coleccionista", a_st30_d: "Consigue 30 estrellas", a_st120: "Leyenda", a_st120_d: "Consigue 120 estrellas", a_cuts: "Tijeras", a_cuts_d: "Corta 10 colas", a_paras: "Venenoso", a_paras_d: "Paraliza rivales 10 veces", a_shots: "Francotirador", a_shots_d: "Dispara 100 veces", a_items: "Recolector", a_items_d: "Recoge 50 bonos", a_champ: "Campeón de campeones", a_champ_d: "Vence a la máquina en Campeón", a_online: "Primera batalla", a_online_d: "Vence a un amigo online", a_streak: "Fiel", a_streak_d: "Racha de 7 días en el reto diario", a_pics: "Tesoro", a_pics_d: "Desbloquea 20 imágenes", a_clean: "Ni un rasguño", a_clean_d: "Vence a un jefe sin perder vidas", a_rich: "Rico", a_rich_d: "Gana 1.000 monedas",
   play_online: 'Online con un amigo', on_sub: 'Batalla de serpientes con voz', on_desc: 'Una batalla de serpientes contra un amigo: cada uno cierra tierra con su color, dispara y corta la cola del otro. Hablad mientras jugáis.', on_host: 'Abrir sala', on_join: '¿Tienes código? Únete', on_enter: 'Código', on_code: 'Código de sala', on_invite: 'Invitar por WhatsApp', on_copy: 'Copiar enlace', on_copied: 'Enlace copiado', on_inv_txt: 'ven a luchar contra mi serpiente:', on_waiting: 'Esperando a tu amigo…', on_connecting: 'Conectando…', on_open: '¡Conectados!', on_reconn: 'Reconectando…', on_start: 'Empezar batalla', on_wait_host: 'Esperando a que el anfitrión empiece', on_leave: 'Salir de la sala', on_back_room: 'Volver a la sala', seat_host: 'Anfitrión', seat_guest: 'Invitado', seat_empty: 'Libre', on_notfound: 'Sala no encontrada — revisa el código', on_full: 'La sala está llena', on_err: 'Falló la conexión — inténtalo de nuevo', v_ptt: 'Pulsa y habla', v_open: 'Micro abierto', v_msg: 'Mensaje de voz', v_talking: '{n} está hablando', v_tap: 'Toca para escuchar', v_denied: 'Sin acceso al micrófono', v_privacy: 'La voz va directa entre los teléfonos y no se guarda', on_ver: 'Tu amigo tiene otra versión del juego — conviene actualizar', on_lost: 'Se perdió la conexión con tu amigo… esperando', friend: 'Amigo',
   am_venom: 'Veneno', am_fire: 'Fuego', am_ice: 'Hielo', am_bolt: 'Rayo', t_para_hit: '¡Lo paralizaste!', t_para_me: '¡Paralizado!', r10: 'Munición: recoge 🧪 veneno, 🔥 fuego, ❄️ hielo o ⚡ rayo — cada uno da 3 disparos, y el botón redondo escupe hacia donde te mueves. El veneno paraliza a rivales y criaturas, el fuego hace desaparecer una criatura unos segundos, el hielo congela y el rayo corta la cola del rival. La máquina y los jefes también disparan: ¡muévete!',
   w4: 'Bosque encantado', w5: 'Reino helado', w6: 'Volcán', w4d: 'Hongos brillantes, brujas y ciervos antiguos', w5d: 'Palacios de hielo, osos y auroras', w6d: 'Ríos de lava, dragones y herreros de fuego', w1: 'Oasis del desierto', w2: 'Selva salvaje', w3: 'Reino de los espíritus', w1d: 'Mercados, dunas y palacios de arena', w2d: 'Leopardos, cazadores y senderos', w3d: 'Templos, magia y hechizos antiguos', world_n: 'Mundo {n}',
@@ -1365,6 +1402,7 @@ es: {
   daily_res: 'Reto diario', new_skin: 'Nueva serpiente: {s}!', time_left: 'Tiempo', lives: 'Vidas'
 },
 ar: {
+  sh_title: "المتجر", ach_title: "الإنجازات", coins: "العملات", buy: "اشترِ", maxed: "الحد الأقصى", no_coins: "العملات غير كافية", bought: "تمت الترقية!", up_note: "الترقيات تعمل في المراحل وتحدي اليوم وضد الحاسوب — وليس أونلاين، كي تبقى المعركة مع الأصدقاء عادلة.", res_coins: "العملات", ach_got: "إنجاز: {n}", t_shield: "الدرع أنقذ ذيلك!", lvl_of: "المستوى {a}/{b}", ach_count: "{a} من {b}", up_speed: "ثعبان سريع", up_speed_d: "+4% سرعة لكل مستوى", up_ammo: "ذخيرة البداية", up_ammo_d: "ابدأ كل مرحلة بطلقات سم (2/3/4)", up_magnet: "مغناطيس المكافآت", up_magnet_d: "يلتقط المكافآت عن بُعد — خانة أو خانتان", up_dur: "مكافآت أطول", up_dur_d: "السرعة والتجميد يدومان 20% أكثر لكل مستوى", up_life: "روح إضافية", up_life_d: "+1 روح في بداية كل مرحلة", up_shield: "درع الذيل", up_shield_d: "مرة في كل مرحلة، لا تُحتسب ضربة على الذيل", a_cap1: "الخطوة الأولى", a_cap1_d: "أغلق أول منطقة لك", a_big: "استيلاء ضخم", a_big_d: "أغلق 25% من البحر دفعة واحدة", a_combo: "كومبو مجنون", a_combo_d: "صل إلى كومبو x5", a_boss1: "صياد الزعماء", a_boss1_d: "اهزم أول زعيم", a_boss6: "ملك الثعابين", a_boss6_d: "اهزم الزعماء الستة", a_world1: "فاتح الصحراء", a_world1_d: "أنهِ كل مراحل العالم 1", a_st30: "جامع النجوم", a_st30_d: "اجمع 30 نجمة", a_st120: "أسطورة", a_st120_d: "اجمع 120 نجمة", a_cuts: "مقص", a_cuts_d: "اقطع 10 ذيول", a_paras: "سام", a_paras_d: "اشلّ الخصوم 10 مرات", a_shots: "قناص", a_shots_d: "أطلق 100 طلقة", a_items: "جامع", a_items_d: "اجمع 50 مكافأة", a_champ: "بطل الأبطال", a_champ_d: "اهزم الحاسوب في مستوى البطل", a_online: "المعركة الأولى", a_online_d: "اهزم صديقًا أونلاين", a_streak: "وفيّ", a_streak_d: "سلسلة 7 أيام في تحدي اليوم", a_pics: "كنز", a_pics_d: "افتح 20 صورة", a_clean: "بلا خدش", a_clean_d: "اهزم زعيمًا دون خسارة روح", a_rich: "غني", a_rich_d: "اربح 1000 عملة",
   play_online: 'أونلاين مع صديق', on_sub: 'معركة ثعابين مع صوت', on_desc: 'معركة ثعابين ضد صديق: كل واحد يغلق الأرض بلونه ويطلق النار ويقطع ذيل الآخر. تحدّثا أثناء اللعب.', on_host: 'افتح غرفة', on_join: 'لديك رمز؟ انضم', on_enter: 'الرمز', on_code: 'رمز الغرفة', on_invite: 'ادعُ عبر واتساب', on_copy: 'انسخ الرابط', on_copied: 'تم نسخ الرابط', on_inv_txt: 'تعال قاتل ثعباني:', on_waiting: 'بانتظار صديقك…', on_connecting: 'جارٍ الاتصال…', on_open: 'متصلان!', on_reconn: 'إعادة الاتصال…', on_start: 'ابدأ المعركة', on_wait_host: 'بانتظار أن يبدأ المضيف', on_leave: 'غادر الغرفة', on_back_room: 'العودة إلى الغرفة', seat_host: 'المضيف', seat_guest: 'الضيف', seat_empty: 'مقعد فارغ', on_notfound: 'الغرفة غير موجودة — تحقق من الرمز', on_full: 'الغرفة ممتلئة', on_err: 'فشل الاتصال — حاول مجددًا', v_ptt: 'اضغط وتحدّث', v_open: 'ميكروفون مفتوح', v_msg: 'رسالة صوتية', v_talking: '{n} يتحدث', v_tap: 'اضغط للاستماع', v_denied: 'لا يوجد إذن للميكروفون', v_privacy: 'الصوت ينتقل مباشرة بين الهاتفين ولا يُحفظ', on_ver: 'لدى صديقك إصدار آخر من اللعبة — يُفضّل التحديث', on_lost: 'انقطع الاتصال بصديقك… بانتظار', friend: 'صديق',
   am_venom: 'سم', am_fire: 'نار', am_ice: 'جليد', am_bolt: 'برق', t_para_hit: 'شللته!', t_para_me: 'أصبت بالشلل!', r10: 'الذخيرة: اجمع 🧪 السم أو 🔥 النار أو ❄️ الجليد أو ⚡ البرق — كل واحدة تعطي 3 طلقات، والزر الدائري يبصق في اتجاه حركتك. السم يشل الخصم والمخلوقات، والنار تحرق المخلوق وتخفيه لثوانٍ، والجليد يجمّد، والبرق يقطع ذيل الخصم. الحاسوب والزعماء يطلقون أيضًا — تحرّك!',
   w4: 'الغابة المسحورة', w5: 'مملكة الجليد', w6: 'البركان', w4d: 'فطر متوهج وساحرات وأيائل قديمة', w5d: 'قصور جليدية ودببة وشفق قطبي', w6d: 'أنهار حمم وتنانين وحدادو النار', w1: 'واحة الصحراء', w2: 'الغابة البرية', w3: 'مملكة الأرواح', w1d: 'أسواق وكثبان وقصور رملية', w2d: 'نمور وصيادون ودروب الغابة', w3d: 'معابد وسحر وتعاويذ قديمة', world_n: 'العالم {n}',
@@ -1415,7 +1453,7 @@ ar: {
 <script>/* SnakeNest app shell + renderer */
 (function () {
 'use strict';
-var APP_VERSION = '0.6.0';
+var APP_VERSION = '0.7.0';
 var E = window.SNE;
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'sk_data';
@@ -1428,8 +1466,8 @@ var store = {
   del: function (k) { try { localStorage.removeItem(k); } catch (e) {} delete mem[k]; }
 };
 function defData() {
-  return { v: 1, stars: {}, skin: 'green', set: { lang: 'he', theme: 'gold', sound: true, music: true, vib: true, ctrl: 'swipe', name: '' }, pics: {}, best: {},
-    daily: { date: 0, done: false, best: 0, streak: 0, last: 0 }, duel: { 1: 0, 2: 0, 3: 0, 4: 0 }, duelSel: 2, stats: { games: 0, cuts: 0 }, tut: false };
+  return { v: 1, stars: {}, skin: 'green', set: { lang: 'he', theme: 'gold', sound: true, music: true, vib: true, ctrl: 'swipe', name: '' }, pics: {}, best: {}, coins: 0, up: {}, ach: {},
+    daily: { date: 0, done: false, best: 0, streak: 0, last: 0 }, duel: { 1: 0, 2: 0, 3: 0, 4: 0 }, duelSel: 2, stats: { games: 0, cuts: 0, caps: 0, bigCap: 0, maxCombo: 0, paras: 0, shots: 0, items: 0, bossW: {}, clean: 0, earned: 0 }, tut: false };
 }
 var D = defData();
 try { var raw = store.get(KEY); if (raw) { var p = JSON.parse(raw); if (p && p.v === 1) D = merge(defData(), p); } } catch (e) {}
@@ -1477,7 +1515,7 @@ window.addEventListener('popstate', function () {
   if (hist.ignore > 0) { hist.ignore--; return; }
   hist.guard = false; goBack(); syncHistory();
 });
-var SCREEN_NAMES = { online: 'play_online', gallery: 'gallery', home: 'home', levels: 'play_levels', duel: 'play_duel', daily: 'play_daily', skins: 'skins', rules: 'howto', settings: 'settings', about: 'about', game: 'home' };
+var SCREEN_NAMES = { shop: 'sh_title', ach: 'ach_title', online: 'play_online', gallery: 'gallery', home: 'home', levels: 'play_levels', duel: 'play_duel', daily: 'play_daily', skins: 'skins', rules: 'howto', settings: 'settings', about: 'about', game: 'home' };
 function cur() { return nav[nav.length - 1]; }
 function show(id) {
   document.querySelectorAll('.screen').forEach(function (s) { s.classList.toggle('on', s.id === id); });
@@ -1980,13 +2018,48 @@ var demo = (function () {
 })();
 
 /* ───── game ───── */
+/* ───── shop + achievements ───── */
+var UPG = [
+  { id: 'speed', ic: '⚡', cost: [60, 150, 300] }, { id: 'ammo', ic: '🧪', cost: [80, 180, 350] }, { id: 'magnet', ic: '🧲', cost: [120, 300] },
+  { id: 'dur', ic: '⏳', cost: [70, 160, 320] }, { id: 'life', ic: '❤️', cost: [150, 400] }, { id: 'shield', ic: '🛡️', cost: [250] }
+];
+function stat(k) { return (D.stats && D.stats[k]) || 0; }
+var ACH = [
+  { id: 'cap1', ic: '🌱', n: 1, v: function () { return stat('caps'); }, r: 20 },
+  { id: 'big', ic: '🌊', n: 1, v: function () { return stat('bigCap'); }, r: 60 },
+  { id: 'combo', ic: '🔥', n: 5, v: function () { return stat('maxCombo'); }, r: 60 },
+  { id: 'boss1', ic: '🐍', n: 1, v: function () { return Object.keys(D.stats.bossW || {}).length; }, r: 80 },
+  { id: 'boss6', ic: '👑', n: 6, v: function () { return Object.keys(D.stats.bossW || {}).length; }, r: 300 },
+  { id: 'world1', ic: '🏜️', n: 10, v: function () { var c = 0; for (var i = 1; i <= 10; i++) if (D.stars[i]) c++; return c; }, r: 80 },
+  { id: 'st30', ic: '⭐', n: 30, v: function () { return totalStars(); }, r: 80 },
+  { id: 'st120', ic: '🌟', n: 120, v: function () { return totalStars(); }, r: 250 },
+  { id: 'cuts', ic: '✂️', n: 10, v: function () { return stat('cuts'); }, r: 70 },
+  { id: 'paras', ic: '🧪', n: 10, v: function () { return stat('paras'); }, r: 70 },
+  { id: 'shots', ic: '🎯', n: 100, v: function () { return stat('shots'); }, r: 70 },
+  { id: 'items', ic: '🍎', n: 50, v: function () { return stat('items'); }, r: 70 },
+  { id: 'champ', ic: '🏆', n: 1, v: function () { return (D.duel && D.duel[4]) || 0; }, r: 150 },
+  { id: 'online', ic: '🌐', n: 1, v: function () { return (D.online && D.online.w) || 0; }, r: 100 },
+  { id: 'streak', ic: '📅', n: 7, v: function () { return (D.daily && D.daily.streak) || 0; }, r: 120 },
+  { id: 'pics', ic: '🖼️', n: 20, v: function () { return unlockedPics().length; }, r: 100 },
+  { id: 'clean', ic: '💎', n: 1, v: function () { return stat('clean'); }, r: 120 },
+  { id: 'rich', ic: '💰', n: 1000, v: function () { return stat('earned'); }, r: 100 }
+];
+function addCoins(n) { if (!(n > 0)) return; D.coins = (D.coins || 0) + n; D.stats.earned = stat('earned') + n; }
+function checkAch(silent) {
+  var got = [];
+  ACH.forEach(function (a) { if (!D.ach[a.id] && a.v() >= a.n) { D.ach[a.id] = 1; addCoins(a.r); got.push(a); } });
+  if (got.length) { save(); if (!silent) got.forEach(function (a, i) { setTimeout(function () { snack('🏆 ' + T('ach_got', { n: T('a_' + a.id) }) + ' +' + a.r + ' 🪙', 2600); tone(880, 0.15, 'triangle', 0.08, 1320, 0); }, 400 + i * 2700); }); }
+  return got;
+}
 var G = (function () {
   var S, V = makeView(), meta, raf, last, acc = 0, t = 0, q = [], stopReq = false, started = false, paused = false, endShown = false, cv, endT = 0, lastHud = '';
   var me = 0, myId = 1, role = null, rq = [], rStop = false, sendT = 0, sentVer = -1, evBuf = [], pending = null, hintOff = false;
   function remoteCtrl(S2, s) { if (rq.length) s.want = rq.shift(); if (rStop) { s.stop = true; rStop = false; } }
   function ctrl(S2, s) { if (q.length) { s.want = q.shift(); } if (stopReq) { s.stop = true; stopReq = false; } }
   function start(cfg, m) {
-    meta = m; if (!cfg.world) cfg.world = 1 + ((cfg.seed >>> 0) % 6); S = E.create(cfg); S.snakes[0].ctrl = ctrl;
+    meta = m; if (!cfg.world) cfg.world = 1 + ((cfg.seed >>> 0) % 6);
+    if (m.mode !== 'online') cfg.up = { speed: D.up.speed || 0, ammo: D.up.ammo || 0, magnet: D.up.magnet || 0, dur: D.up.dur || 0, life: D.up.life || 0, shield: D.up.shield || 0 };
+    S = E.create(cfg); S.snakes[0].ctrl = ctrl;
     role = m.mode === 'online' ? m.role : null; me = role === 'guest' ? 1 : 0; myId = me + 1;
     rq = []; rStop = false; sendT = 0; sentVer = -1; evBuf = []; pending = null; hintOff = false;
     if (S.snakes[1]) S.snakes[1].ctrl = role === 'host' ? remoteCtrl : role === 'guest' ? null : E.makeBot(cfg.rival, cfg.seed ^ 0x5bd1e995);
@@ -2073,7 +2146,13 @@ var G = (function () {
   function toast(s) { var el = $('toast'); el.textContent = s; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { el.classList.remove('on'); }, 1300); }
   function gameEvents(ev) {
     for (var i = 0; i < ev.length; i++) {
-      var e = ev[i];
+      var e = ev[i], st = D.stats;
+      if (e.t === 'cap' && e.id === myId) { st.caps = (st.caps || 0) + 1; if (e.pct >= 0.25) st.bigCap = 1; if ((e.combo || 0) > (st.maxCombo || 0)) st.maxCombo = e.combo; }
+      else if (e.t === 'shoot' && e.id === myId) st.shots = (st.shots || 0) + 1;
+      else if (e.t === 'item' && e.id === myId) st.items = (st.items || 0) + 1;
+      else if (e.t === 'phit' && e.by === myId && e.what === 'snake') st.paras = (st.paras || 0) + 1;
+      else if (e.t === 'phit' && e.by === myId && e.what === 'tail') st.cuts = (st.cuts || 0) + 1;
+      if (e.t === 'shield' && e.id === myId) { toast('🛡️ ' + T('t_shield')); tone(1000, 0.25, 'sine', 0.08, 1600); vib(30); }
       if (e.t === 'cap' && e.id === myId) { sfx.cap(e.pct); vib(15); if (e.pct >= 0.12) toast(T('t_big')); }
       else if (e.t === 'cap') { if (e.pct > 0.03) tone(300, 0.12, 'triangle', 0.04); }
       else if (e.t === 'die' && e.id === myId) { sfx.die(); vib([90, 40, 90]); q = []; }
@@ -2160,7 +2239,10 @@ var G = (function () {
     var newPic = false, rec = false, bk = meta.mode === 'level' ? 'l' + meta.n : meta.mode;
     if (win && meta.pic && !D.pics[meta.pic]) { D.pics[meta.pic] = 1; newPic = true; }
     if (S.score > (D.best[bk] || 0)) { rec = (D.best[bk] || 0) > 0; D.best[bk] = S.score; }
-    save();
+    if (win && S.cfg.boss) { D.stats.bossW = D.stats.bossW || {}; D.stats.bossW[S.cfg.world] = 1; if (p.deaths === 0) D.stats.clean = 1; }
+    var earned = role ? (win ? 20 : 5) : Math.min(60, Math.round(S.score / 1500)) + (win ? 15 : 3) + stars * 5 + (newPic ? 10 : 0);
+    addCoins(earned);
+    save(); checkAch();
     var title = win ? T('win_title') : mr === 'draw' ? T('draw_title') : T('lose_title');
     html += '<div style="font-size:54px">' + (win ? '🏆' : mr === 'draw' ? '🤝' : '🐍💥') + '</div><h3>' + title + '</h3>';
     if (meta.mode === 'level' && win) { html += '<div class="stars">'; for (var i = 1; i <= 3; i++) html += i <= stars ? '★' : '<span class="off">★</span>'; html += '</div>'; }
@@ -2170,6 +2252,7 @@ var G = (function () {
     if (r) html += '<div class="stat"><span>' + T('res_rival') + '</span><b>' + pc(E.pct(S, r)) + '</b></div><div class="stat"><span>' + T('res_cuts') + '</span><b><bdi>' + p.cuts + '</bdi></b></div>';
     html += '<div class="stat"><span>' + T('res_time') + '</span><b><bdi>' + fmtT(S.t) + '</bdi></b></div>';
     html += '<div class="stat"><span>' + T('score') + (rec ? ' · ' + T('new_record') : '') + '</span><b><bdi>' + S.score + '</bdi></b></div></div>';
+    html += '<div class="stat"><span>' + T('res_coins') + '</span><b><bdi>+' + earned + ' 🪙</bdi></b></div>';
     if (newPic) html += '<p style="color:var(--acc);font-weight:800;margin:12px 0 0">🖼️ ' + T('img_unlocked') + '</p>';
     html += '<div class="btns">';
     var hasNext = meta.mode === 'level' && win && meta.n < 60;
@@ -2324,6 +2407,8 @@ var RENDER = {
     $('hDailySub').textContent = (D.daily.date === today() && D.daily.done) ? T('daily_done') : (D.daily.streak ? T('streak', { n: D.daily.streak }) : '');
     $('hSkinSub').textContent = T('sk_' + D.skin);
     var ow = D.online || { w: 0, l: 0 }; $('hOnSub').textContent = T('on_sub');
+    $('hShopSub').innerHTML = '🪙 <bdi>' + (D.coins || 0) + '</bdi>';
+    var dn = 0; ACH.forEach(function (a) { if (D.ach[a.id]) dn++; }); $('hAchSub').innerHTML = '<bdi>' + dn + ' / ' + ACH.length + '</bdi>';
     $('hGalSub').innerHTML = '🖼️ <bdi>' + unlockedPics().length + ' / 80</bdi>';
     music.play(0.5);
   },
@@ -2346,6 +2431,25 @@ var RENDER = {
     }
     $('lgrid').innerHTML = h; $('lvStars').innerHTML = '★ <bdi>' + totalStars() + '</bdi>';
     var c = $('lgrid').querySelector('.cur'); if (c) setTimeout(function () { c.scrollIntoView({ block: 'center' }); }, 50);
+  },
+  shop: function () {
+    var h = '<div class="card coinbar"><span>🪙</span><b><bdi>' + (D.coins || 0) + '</bdi></b><span class="mut">' + T('coins') + '</span></div><p class="mut" style="margin:0 2px 12px;line-height:1.5">' + T('up_note') + '</p>';
+    UPG.forEach(function (u) {
+      var lv = D.up[u.id] || 0, max = u.cost.length, cost = u.cost[lv], dots = '';
+      for (var i = 0; i < max; i++) dots += '<i class="' + (i < lv ? 'on' : '') + '"></i>';
+      h += '<div class="card upg"><div class="uic">' + u.ic + '</div><div class="ubody"><b>' + T('up_' + u.id) + '</b><span class="mut">' + T('up_' + u.id + '_d') + '</span><div class="udots">' + dots + '</div></div>' +
+        (lv >= max ? '<span class="umax">' + T('maxed') + '</span>' : '<button class="btn sm ' + ((D.coins || 0) >= cost ? 'pri' : '') + '" data-buy="' + u.id + '">🪙 <bdi>' + cost + '</bdi></button>') + '</div>';
+    });
+    $('shopBody').innerHTML = h;
+  },
+  ach: function () {
+    var done = 0, h = '';
+    ACH.forEach(function (a) {
+      var v = Math.min(a.n, a.v()), ok = !!D.ach[a.id]; if (ok) done++;
+      h += '<div class="card achc' + (ok ? ' ok' : '') + '"><div class="uic">' + a.ic + '</div><div class="ubody"><b>' + T('a_' + a.id) + (ok ? ' ✓' : '') + '</b><span class="mut">' + T('a_' + a.id + '_d') + '</span>' +
+        (ok ? '' : '<div class="abar"><i style="width:' + Math.round(v / a.n * 100) + '%"></i></div><span class="mut" dir="ltr" style="font-size:12px">' + v + ' / ' + a.n + '</span>') + '</div><span class="arew">+' + a.r + ' 🪙</span></div>';
+    });
+    $('achBody').innerHTML = h; $('achCount').innerHTML = T('ach_count', { a: '<bdi>' + done + '</bdi>', b: '<bdi>' + ACH.length + '</bdi>' });
   },
   gallery: function () {
     var h = '', got = 0, all = [];
@@ -2404,6 +2508,10 @@ function drawPreview(c, sk) {
 document.addEventListener('click', function (e) {
   var lv = e.target.closest('[data-lv]');
   if (lv) { if (lv.classList.contains('lock')) { snack(T('locked')); return; } sfx.click(); var n = +lv.getAttribute('data-lv'); G.start(E.levelCfg(n), { mode: 'level', n: n }); return; }
+  var bu = e.target.closest('[data-buy]');
+  if (bu) { var u = UPG.filter(function (x) { return x.id === bu.getAttribute('data-buy'); })[0], lv = D.up[u.id] || 0, cost = u.cost[lv];
+    if (cost == null) return; if ((D.coins || 0) < cost) { snack(T('no_coins')); return; }
+    D.coins -= cost; D.up[u.id] = lv + 1; save(); sfx.life(); snack(u.ic + ' ' + T('bought')); RENDER.shop(); return; }
   var gi = e.target.closest('[data-pic]');
   if (gi) { if (gi.classList.contains('lock')) { snack(gi.querySelector('small').textContent); return; }
     var pn = +gi.getAttribute('data-pn'), m = modal('<img src="img/' + gi.getAttribute('data-pic') + '.jpg" style="width:100%;border-radius:12px;display:block" alt=""><p style="margin:10px 0 0;font-weight:700">' + (pn ? T('level', { n: pn }) + ' · ' + T('w' + Math.ceil(pn / 10)) : T('play_daily')) + '</p><div class="btns"><button class="btn pri" id="gOk">' + T('ok') + '</button></div>', { cls: 'gview' });
@@ -2496,7 +2604,7 @@ $('duelGo').onclick = function () { sfx.click(); var seed = (Math.random() * 1e9
 $('dailyGo').onclick = function () { sfx.click(); var d = today(); G.start(E.dailyCfg(d), { mode: 'daily', date: d }); };
 G.setupInput();
 (function () { var qj = new URLSearchParams(location.search).get('join'); if (qj) { D.tut = true; setTimeout(function () { go('online'); Net.join(qj); try { var sp = new URLSearchParams(location.search); sp.delete('join'); history.replaceState(history.state, '', location.pathname + (sp.toString() ? '?' + sp : '')); } catch (e) {} }, 60); } })();
-applyTheme(); applyLang(); show('home'); syncHistory();
+applyTheme(); applyLang(); checkAch(true); show('home'); syncHistory();
 if (!D.tut) setTimeout(tutorial, 400);
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
 window.__sk = { Net: Net, D: D, G: G, E: E, T: T, go: go, back: goBack, nav: function () { return nav; }, modals: function () { return modals.length; } };
