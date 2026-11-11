@@ -212,6 +212,20 @@ body.pad-on .shoot{display:none!important}
 .arew{font-weight:800;color:var(--acc);white-space:nowrap}
 .achc.ok{border-color:var(--acc)}
 .achc:not(.ok) .uic{filter:grayscale(.8);opacity:.7}
+
+.wpn{position:absolute;left:14px;bottom:calc(16px + env(safe-area-inset-bottom));width:70px;height:70px;border-radius:50%;border:3px solid #ffb347;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.3),rgba(0,0,0,.6));display:none;place-items:center;z-index:6;touch-action:none;box-shadow:0 0 16px rgba(255,140,40,.7)}
+.wpn.on{display:grid;animation:pop .25s}
+.wpn img{width:50px;height:50px;pointer-events:none}
+.wpn b{position:absolute;top:-6px;left:-6px;background:#111;color:#fff;border:2px solid #ffb347;border-radius:999px;min-width:26px;height:26px;font-size:15px;display:grid;place-items:center;padding:0 5px}
+.wpn.empty{opacity:.35;filter:grayscale(1)}
+.wpn.cd img{opacity:.45}
+.wpn.act{border-color:#8fe3ff;box-shadow:0 0 26px #5ec8ff,0 0 8px #fff inset;animation:wpnPulse .5s infinite alternate}
+@keyframes wpnPulse{to{transform:scale(1.08)}}
+body.pad-on .wpn{display:none!important}
+#padWpn:disabled{opacity:.35}
+.wcard .wic{width:56px;height:56px;flex:none;object-fit:contain}
+.wcard .wbtns{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.wcard.eq{outline:2px solid var(--acc,#ffb347)}
 </style>
 </head>
 <body>
@@ -266,8 +280,8 @@ body.pad-on .shoot{display:none!important}
       <div class="bar" id="gBar"><i class="p1" id="gB1"></i><i class="p2" id="gB2"></i><span class="tg" id="gTg"></span></div>
     </div>
   </div>
-  <div id="stage"><canvas id="cv"></canvas><div class="toast" id="toast"></div><button class="shoot" id="shootBtn" aria-label="shoot"></button><div class="hint" id="hint"></div><div class="netwait" id="netWait" style="display:none"><span data-t="on_lost"></span></div></div>
-  <div class="pad" id="pad"><span></span><button data-d="0">▲</button><span></span><button data-d="3">◀</button><button data-d="s">■</button><button data-d="1">▶</button><span></span><button data-d="2">▼</button><button data-d="f" id="padFire" disabled>🎯</button></div>
+  <div id="stage"><canvas id="cv"></canvas><div class="toast" id="toast"></div><button class="shoot" id="shootBtn" aria-label="shoot"></button><button class="wpn" id="wpnBtn" aria-label="weapon"></button><div class="hint" id="hint"></div><div class="netwait" id="netWait" style="display:none"><span data-t="on_lost"></span></div></div>
+  <div class="pad" id="pad"><span></span><button data-d="0">▲</button><span></span><button data-d="3">◀</button><button data-d="s">■</button><button data-d="1">▶</button><button data-d="w" id="padWpn" style="visibility:hidden"></button><button data-d="2">▼</button><button data-d="f" id="padFire" disabled>🎯</button></div>
 </section>
 <div class="snack" id="snack"></div>
 <input type="file" id="fileIn" accept=".json,application/json" hidden>
@@ -568,14 +582,15 @@ function rng(seed) {
 function levelCfg(n) {
   var w = Math.ceil(n / 10), k = (n - 1) % 10 + 1, base = { W: 30, H: 56, seed: 1000 + n * 7919, lives: 3, time: 0, items: true, world: w };
   var hard = Math.min(w, 4); // worlds 4–6 keep the world-4 base, but get their own creatures
+  var xt = Math.max(0, w - 6); // worlds 7–9: faster creatures, one more, stronger boss
   if (k === 10) return Object.assign(base, {
-    balls: Math.min(3, Math.floor((hard + 1) / 2)), ballSpeed: 4.4 + hard * 0.25, big: 0,
+    balls: Math.min(3, Math.floor((hard + 1) / 2)), ballSpeed: 4.4 + hard * 0.25 + xt * 0.15, big: 0,
     crabs: hard >= 2 ? 1 : 0, crabSpeed: 2.8 + hard * 0.1, target: 0.95, rival: 0,
-    boss: Math.min(3, Math.ceil(hard / 1.5)), bossTrap: 0.10
+    boss: Math.min(3, Math.ceil(hard / 1.5)) + (xt >= 2 ? 1 : 0), bossTrap: 0.10
   });
   return Object.assign(base, {
-    balls: Math.min(6, 1 + Math.floor(k / 4) + Math.floor(hard / 2)),
-    ballSpeed: 4.5 + k * 0.08 + hard * 0.22,
+    balls: Math.min(6, 1 + Math.floor(k / 4) + Math.floor(hard / 2) + (xt >= 2 && k >= 3 ? 1 : 0)),
+    ballSpeed: 4.5 + k * 0.08 + hard * 0.22 + xt * 0.18,
     big: (hard >= 2 && k >= 6) ? 1 : 0,
     crabs: (k >= 4 ? 1 : 0) + (hard >= 3 && k >= 8 ? 1 : 0),
     crabSpeed: 2.8 + k * 0.03 + hard * 0.1,
@@ -589,7 +604,7 @@ function duelCfg(lvl, seed) {
 }
 function dailyCfg(dateNum) {
   var r = rng(dateNum * 2654435761);
-  var n = 8 + Math.floor(r() * 30); if (n % 10 === 0) n++;
+  var n = 8 + Math.floor(r() * 80); if (n % 10 === 0) n++;
   var c = levelCfg(n);
   c.seed = dateNum; c.rival = r() < 0.4 ? 2 : 0; c.daily = true;
   return c;
@@ -601,7 +616,7 @@ function create(cfg) {
     cfg: cfg, W: W, H: H, N: N, rnd: R, t: 0, over: false, result: null,
     grid: new Uint8Array(N), trail: new Uint8Array(N), capT: new Float32Array(N),
     snakes: [], balls: [], crabs: [], events: [], seaTotal: 0, ver: 1,
-    items: [], shots: [], itemT: 5 + R() * 3, freeze: 0, score: 0, combo: 0, lastCap: -99, boss: null
+    items: [], shots: [], mines: [], slow: 0, slowBy: 0, itemT: 5 + R() * 3, freeze: 0, score: 0, combo: 0, lastCap: -99, boss: null
   };
   for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
     var b = (x < 2 || y < 2 || x >= W - 2 || y >= H - 2);
@@ -617,6 +632,7 @@ function create(cfg) {
     p1.lives += up.life || 0; p1.mag = up.magnet || 0; p1.dur = 1 + 0.2 * (up.dur || 0); p1.shield = up.shield || 0;
   }
   if (cfg.rival) addSnake(S, 2, Math.floor(W / 2), H - 1, 0, cfg.duel ? cfg.lives : 999);
+  arm(S.snakes[0], cfg.wp); if (S.snakes[1]) arm(S.snakes[1], cfg.wp2);
   function seaSpot() {
     for (var k = 0; k < 500; k++) {
       var x = 5 + R() * (W - 10), y = 6 + R() * (H - 12);
@@ -644,7 +660,7 @@ function create(cfg) {
 
 function addSnake(S, id, x, y, dir, lives) {
   S.snakes.push({ id: id, x: x, y: y, sx: x, sy: y, sdir: dir, dir: dir, moving: false, acc: 0,
-    speed: 12.5, base: 12.5, fast: 0, para: 0, ammo: null, ammoN: 0, cool: 0, shootReq: false, trail: [], lives: lives, dead: 0, inv: 1.5, area: 0, hist: [], ctrl: null, bot: null, cuts: 0, deaths: 0 });
+    speed: 12.5, base: 12.5, fast: 0, para: 0, ammo: null, ammoN: 0, cool: 0, shootReq: false, wp: null, wpLv: 0, wpN: 0, wpCd: 0, wpReq: false, shock: 0, mirror: 0, trail: [], lives: lives, dead: 0, inv: 1.5, area: 0, hist: [], ctrl: null, bot: null, cuts: 0, deaths: 0 });
 }
 
 function idx(S, x, y) { return y * S.W + x; }
@@ -661,9 +677,11 @@ function step(S) {
     if (s.inv > 0) s.inv -= STEP;
     if (s.cool > 0) s.cool -= STEP;
     if (s.shootReq) { s.shootReq = false; fire(S, s); }
+    if (s.wpCd > 0) s.wpCd -= STEP; if (s.shock > 0) s.shock -= STEP; if (s.mirror > 0) s.mirror -= STEP;
+    if (s.wpReq) { s.wpReq = false; useWeapon(S, s); }
     if (s.para > 0) { s.para -= STEP; s.acc = 0; continue; }
     if (s.fast > 0) { s.fast -= STEP; s.speed = s.base * 1.35; } else s.speed = s.base;
-    s.acc += STEP * s.speed;
+    s.acc += STEP * s.speed * (S.slow > 0 && S.slowBy !== s.id ? 0.55 : 1);
     var guard = 0;
     while (s.acc >= 1 && guard++ < 3 && s.dead <= 0) {
       s.acc -= 1;
@@ -672,8 +690,9 @@ function step(S) {
     }
     if (!s.moving) s.acc = Math.min(s.acc, 1);
   }
+  S._f = S.slow > 0 ? 0.35 : 1; if (S.slow > 0) S.slow -= STEP;
   if (S.freeze > 0) S.freeze -= STEP; else moveBalls(S);
-  moveCrabs(S); if (S.cfg.items) items(S); shots(S); collide(S); checkEnd(S);
+  moveCrabs(S); if (S.cfg.items) items(S); shots(S); if (S.mines.length) mines(S); collide(S); checkEnd(S);
 }
 
 /* ── shooting: ammo pickups give 3 shots; venom paralyzes, fire burns creatures away, ice freezes, bolt cuts tails ── */
@@ -687,30 +706,128 @@ function fire(S, s) {
   if (s.ammoN <= 0) s.ammo = null;
   return true;
 }
+/* ── special weapons (bought in the shop): one per player, charges per game ── */
+var WPN = {
+  missile: { n: [2, 3, 4], cd: 1.2 },
+  spin: { n: [3, 4, 5], cd: 0.8 },
+  shock: { n: [2, 3, 4], cd: 4, dur: [2.5, 3, 3.5] },
+  mine: { n: [3, 4, 6], cd: 0.6 },
+  mirror: { n: [2, 3, 4], cd: 3, dur: [4, 5, 6] },
+  slow: { n: [2, 2, 3], cd: 6, dur: [4, 5, 6] }
+};
+function arm(s, w) {
+  if (!s || !w || !WPN[w.id]) return;
+  s.wp = w.id; s.wpLv = Math.max(0, Math.min(2, w.lv || 0)); s.wpN = WPN[w.id].n[s.wpLv];
+}
+function useWeapon(S, s) {
+  if (!s.wp || s.wpN <= 0 || s.wpCd > 0 || s.dead > 0) return false;
+  var Wd = WPN[s.wp], lv = s.wpLv || 0, d = s.dir, hx = s.x + .5, hy = s.y + .5;
+  if (s.wp === 'missile') S.shots.push({ x: hx + DX[d] * .6, y: hy + DY[d] * .6, vx: DX[d] * 12, vy: DY[d] * 12, type: 'missile', owner: s.id, t: 4 });
+  else if (s.wp === 'spin') for (var k = 0; k < 3; k++) { var a0 = Math.atan2(DY[d], DX[d]) + k * 2.0944; S.shots.push({ x: hx + Math.cos(a0) * .8, y: hy + Math.sin(a0) * .8, ox: hx, oy: hy, a: a0, rad: 0.8, vx: 0, vy: 0, type: 'spin', owner: s.id, t: 3.4, hits: 2 }); }
+  else if (s.wp === 'shock') s.shock = Wd.dur[lv];
+  else if (s.wp === 'mirror') s.mirror = Wd.dur[lv];
+  else if (s.wp === 'slow') { S.slow = Wd.dur[lv]; S.slowBy = s.id; }
+  else if (s.wp === 'mine') { var c = s.hist.length ? s.hist[0] : idx(S, s.x, s.y); S.mines.push({ x: c % S.W, y: (c / S.W) | 0, owner: s.id, arm: 0.7, t: 30 }); }
+  s.wpN--; s.wpCd = Wd.cd;
+  S.events.push({ t: 'wpn', id: s.id, type: s.wp, x: s.x, y: s.y });
+  return true;
+}
+function seek(S, p) {
+  var best = null, bd = 16 * 16, i, o, dx, dy, d2;
+  function chk(x, y) { dx = x - p.x; dy = y - p.y; d2 = dx * dx + dy * dy; if (d2 < bd) { bd = d2; best = [x, y]; } }
+  for (i = 0; i < S.balls.length; i++) { o = S.balls[i]; if (!(o.gone > 0)) chk(o.x, o.y); }
+  for (i = 0; i < S.crabs.length; i++) { o = S.crabs[i]; if (!(o.gone > 0)) chk(o.x, o.y); }
+  for (i = 0; i < S.snakes.length; i++) { o = S.snakes[i]; if (o.id !== p.owner && o.dead <= 0 && o.inv <= 0) chk(o.x + .5, o.y + .5); }
+  return best;
+}
+function explode(S, x, y, owner, R) {
+  var i, o;
+  for (i = 0; i < S.balls.length; i++) { o = S.balls[i]; if (o.gone > 0) continue; if (Math.hypot(o.x - x, o.y - y) < R + o.r) { if (o.boss) o.stun = Math.max(o.stun || 0, 3); else { o.gone = 8; o.stun = 0; } } }
+  for (i = 0; i < S.crabs.length; i++) { o = S.crabs[i]; if (!(o.gone > 0) && Math.hypot(o.x - x, o.y - y) < R + .5) o.gone = 8; }
+  for (i = 0; i < S.snakes.length; i++) {
+    o = S.snakes[i]; if (o.id === owner || o.dead > 0 || o.inv > 0) continue;
+    if (Math.hypot(o.x + .5 - x, o.y + .5 - y) < R) {
+      if (o.shock > 0) continue;
+      if (o.trail.length) { var sn = snakeById(S, owner); if (sn) sn.cuts++; kill(S, o, 'boom'); } else o.para = Math.max(o.para, 2.5);
+      S.events.push({ t: 'phit', what: 'snake', id: o.id, type: 'boom', x: o.x, y: o.y, by: owner });
+    }
+  }
+  S.events.push({ t: 'boom', x: x, y: y, r: R, by: owner });
+}
+function mines(S) {
+  for (var i = S.mines.length - 1; i >= 0; i--) {
+    var m = S.mines[i], mx = m.x + .5, my = m.y + .5, go = false, j, o;
+    m.t -= STEP; if (m.t <= 0) { S.mines.splice(i, 1); continue; }
+    if (m.arm > 0) { m.arm -= STEP; continue; }
+    for (j = 0; j < S.balls.length && !go; j++) { o = S.balls[j]; if (!(o.gone > 0) && Math.hypot(o.x - mx, o.y - my) < o.r + .7) go = true; }
+    for (j = 0; j < S.crabs.length && !go; j++) { o = S.crabs[j]; if (!(o.gone > 0) && Math.hypot(o.x - mx, o.y - my) < .9) go = true; }
+    for (j = 0; j < S.snakes.length && !go; j++) { o = S.snakes[j]; if (o.id !== m.owner && o.dead <= 0 && o.x === m.x && o.y === m.y) go = true; }
+    if (go) { S.mines.splice(i, 1); explode(S, mx, my, m.owner, 2.6); }
+  }
+}
+function steer(S, p) {
+  if (p.type === 'missile') {
+    var tg = seek(S, p); if (!tg) return;
+    var a = Math.atan2(p.vy, p.vx), da = Math.atan2(tg[1] - p.y, tg[0] - p.x) - a;
+    while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+    a += Math.max(-5 * STEP, Math.min(5 * STEP, da)); p.vx = Math.cos(a) * 12; p.vy = Math.sin(a) * 12;
+  } else if (p.type === 'spin') {
+    p.rad += 3.6 * STEP; p.a += Math.min(9, 11 / p.rad) * STEP;
+    var nx = p.ox + Math.cos(p.a) * p.rad, ny = p.oy + Math.sin(p.a) * p.rad;
+    p.vx = (nx - p.x) / STEP; p.vy = (ny - p.y) / STEP;
+  }
+}
+function mirrorHit(S, p) {
+  for (var j = 0; j < S.snakes.length; j++) {
+    var o = S.snakes[j]; if (!(o.mirror > 0) || o.id === p.owner || o.dead > 0) continue;
+    if (Math.hypot(o.x + .5 - p.x, o.y + .5 - p.y) < 1.7) {
+      S.events.push({ t: 'reflect', id: o.id, x: p.x, y: p.y });
+      if (p.type === 'spin') return 2;
+      p.vx = -p.vx; p.vy = -p.vy; p.owner = o.id; p.t = Math.max(p.t, 2); p.x += p.vx * STEP * 2; p.y += p.vy * STEP * 2;
+      if (p.type === 'spit') p.refl = 1;
+      return 1;
+    }
+  }
+  return 0;
+}
 function shots(S) {
   var i, j;
   for (i = S.shots.length - 1; i >= 0; i--) {
-    var p = S.shots[i], hit = false;
+    var p = S.shots[i], hit = false, pierce = p.type === 'spin';
     p.t -= STEP;
+    if (p.type === 'missile' || p.type === 'spin') steer(S, p);
     for (var sub = 0; sub < 3 && !hit; sub++) {
       p.x += p.vx * STEP / 3; p.y += p.vy * STEP / 3;
       if (p.x < 0 || p.y < 0 || p.x >= S.W || p.y >= S.H) { hit = true; break; }
+      var mr = mirrorHit(S, p); if (mr === 2) { hit = true; break; } if (mr === 1) continue;
+      if (p.type === 'missile') {
+        var tg = null;
+        for (j = 0; j < S.balls.length && !tg; j++) { var bb = S.balls[j]; if (!(bb.gone > 0) && Math.hypot(bb.x - p.x, bb.y - p.y) < bb.r + .5) tg = bb; }
+        for (j = 0; j < S.crabs.length && !tg; j++) { var cc = S.crabs[j]; if (!(cc.gone > 0) && Math.hypot(cc.x - p.x, cc.y - p.y) < .9) tg = cc; }
+        for (j = 0; j < S.snakes.length && !tg; j++) { var so = S.snakes[j]; if (so.id !== p.owner && so.dead <= 0 && Math.hypot(so.x + .5 - p.x, so.y + .5 - p.y) < .9) tg = so; }
+        if (tg) { explode(S, p.x, p.y, p.owner, 1.8); hit = true; }
+        continue;
+      }
       // creatures
       for (j = 0; j < S.balls.length && !hit; j++) {
-        var b = S.balls[j]; if (b.gone > 0 || p.owner === 0) continue;
-        if (Math.hypot(b.x - p.x, b.y - p.y) < b.r + 0.45) { hitCreature(S, b, p); hit = true; }
+        var b = S.balls[j]; if (b.gone > 0 || p.owner === 0 || (pierce && b.stun > 0)) continue;
+        if (Math.hypot(b.x - p.x, b.y - p.y) < b.r + (pierce ? 0.75 : 0.45)) { hitCreature(S, b, p); hit = !pierce || --p.hits <= 0; }
       }
       for (j = 0; j < S.crabs.length && !hit; j++) {
         var c = S.crabs[j]; if (c.gone > 0 || p.owner === 0) continue;
-        if (Math.hypot(c.x - p.x, c.y - p.y) < 0.9) { c.gone = 7; S.events.push({ t: 'phit', what: 'crab', type: p.type, x: c.x, y: c.y, by: p.owner }); hit = true; }
+        if (Math.hypot(c.x - p.x, c.y - p.y) < (pierce ? 1.1 : 0.9)) { c.gone = 7; S.events.push({ t: 'phit', what: 'crab', type: p.type, x: c.x, y: c.y, by: p.owner }); hit = !pierce || --p.hits <= 0; }
       }
       // snakes
       var cx = Math.floor(p.x), cy = Math.floor(p.y), cell = cy * S.W + cx;
       for (j = 0; j < S.snakes.length && !hit; j++) {
-        var o = S.snakes[j]; if (o.id === p.owner || o.dead > 0) continue;
-        if (Math.hypot(o.x + .5 - p.x, o.y + .5 - p.y) < 0.85) {
+        var o = S.snakes[j]; if (o.id === p.owner || o.dead > 0 || (pierce && o.para > 0)) continue;
+        var near = Math.hypot(o.x + .5 - p.x, o.y + .5 - p.y) < (pierce ? 1.1 : 0.85);
+        if (o.shock > 0 && (near || S.trail[cell] === o.id)) { S.events.push({ t: 'zap', id: o.id, x: p.x, y: p.y }); hit = true; break; }
+        if (near) {
           if (o.inv > 0) { hit = true; break; }
+          if (pierce) { o.para = Math.max(o.para, 2.5); S.events.push({ t: 'phit', what: 'snake', id: o.id, type: 'spin', x: o.x, y: o.y, by: p.owner }); hit = --p.hits <= 0; continue; }
           if (p.owner === 0) { o.para = Math.max(o.para, 1.4); }
+          else if (p.type === 'spit') o.para = 1.6;
           else if (p.type === 'venom') o.para = 2.6;
           else if (p.type === 'ice') o.para = 3.4;
           else if (p.type === 'fire') { o.para = 1.6; }
@@ -728,7 +845,8 @@ function shots(S) {
   }
 }
 function hitCreature(S, b, p) {
-  if (b.boss) { b.stun = Math.max(b.stun || 0, p.type === 'ice' ? 2.5 : 1.5); }
+  if (b.boss) { b.stun = Math.max(b.stun || 0, p.type === 'ice' ? 2.5 : p.refl ? 3 : 1.5); }
+  else if (p.type === 'spin') { b.stun = 4; }
   else if (p.type === 'fire') { b.gone = 6; }
   else if (p.type === 'ice') { b.stun = 5; b.ice = 5; }
   else if (p.type === 'venom') { b.stun = 4; }
@@ -797,6 +915,11 @@ function moveSnake(S, s) {
   if (!inB(S, nx, ny)) { s.moving = false; return; }
   s.moving = true;
   var c = idx(S, nx, ny), tr = S.trail[c];
+  for (var z = 0; z < S.snakes.length; z++) {
+    var zo = S.snakes[z];
+    if (zo === s || zo.dead > 0 || !(zo.shock > 0) || s.inv > 0) continue;
+    if (tr === zo.id || (zo.x === nx && zo.y === ny)) { s.para = Math.max(s.para, 3); s.moving = false; s.acc = 0; S.events.push({ t: 'zap', id: zo.id, victim: s.id, x: nx, y: ny }); return; }
+  }
   s.hist.unshift(idx(S, s.x, s.y)); if (s.hist.length > 7) s.hist.length = 7;
   s.x = nx; s.y = ny;
   if (tr === s.id) { kill(S, s, 'self'); return; }
@@ -888,7 +1011,7 @@ function capture(S, s) {
 function bounce(S, o, solid) {
   var sub = 3, i;
   for (i = 0; i < sub; i++) {
-    var dt = STEP / sub, nx = o.x + o.vx * dt, ny = o.y + o.vy * dt, r = o.r || 0.45;
+    var dt = STEP * (S._f || 1) / sub, nx = o.x + o.vx * dt, ny = o.y + o.vy * dt, r = o.r || 0.45;
     var hx = solid(S, nx + Math.sign(o.vx) * r, o.y), hy = solid(S, o.x, ny + Math.sign(o.vy) * r);
     if (hx) o.vx = -o.vx; else o.x = nx;
     if (hy) o.vy = -o.vy; else o.y = ny;
@@ -911,8 +1034,9 @@ function moveBalls(S) {
   }
 }
 function bossAI(S, b) {
-  b.lungeT -= STEP;
-  b.spitT = (b.spitT == null ? 3 : b.spitT) - STEP;
+  var f = S._f || 1;
+  b.lungeT -= STEP * f;
+  b.spitT = (b.spitT == null ? 3 : b.spitT) - STEP * f;
   var tgt0 = S.snakes[0];
   if (b.spitT <= 0 && tgt0.dead <= 0) {
     b.spitT = 5 + S.rnd() * 3;
@@ -923,7 +1047,7 @@ function bossAI(S, b) {
     S.events.push({ t: 'spit' });
   }
   var p = S.snakes[0];
-  if (b.lunge > 0) { b.lunge -= STEP; if (b.lunge <= 0) { var k = b.sp / Math.hypot(b.vx, b.vy); b.vx *= k; b.vy *= k; } return; }
+  if (b.lunge > 0) { b.lunge -= STEP * f; if (b.lunge <= 0) { var k = b.sp / Math.hypot(b.vx, b.vy); b.vx *= k; b.vy *= k; } return; }
   if (b.lungeT <= 0 && p.dead <= 0 && p.trail.length) {
     b.lungeT = 4 + S.rnd() * 3;
     var tx = S.trail[0] ? 0 : 0, tgt = p.trail[Math.floor(p.trail.length / 2)], gx = tgt % S.W + .5, gy = ((tgt / S.W) | 0) + .5;
@@ -960,13 +1084,20 @@ function collide(S) {
       var cx = Math.floor(pts[j][0]), cy = Math.floor(pts[j][1]);
       if (!inB(S, cx, cy)) continue;
       var tr = S.trail[cy * S.W + cx];
-      if (tr) { var o = snakeById(S, tr); if (o && o.dead <= 0 && o.inv <= 0) { S.events.push({ t: 'hit', id: o.id, x: cx, y: cy }); kill(S, o, 'ball'); } }
+      if (tr) { var o = snakeById(S, tr); if (o && o.dead <= 0 && o.inv <= 0) {
+        if (o.shock > 0) { zapBall(S, b, o); break; }
+        S.events.push({ t: 'hit', id: o.id, x: cx, y: cy }); kill(S, o, 'ball'); } }
     }
+    if (b.stun > 0) continue;
     for (j = 0; j < S.snakes.length; j++) {
       s = S.snakes[j];
       if (s.dead > 0 || s.inv > 0 || S.grid[idx(S, s.x, s.y)] !== SEA) continue;
       var dx = s.x + .5 - b.x, dy = s.y + .5 - b.y;
-      if (dx * dx + dy * dy < (b.r + .35) * (b.r + .35)) kill(S, s, 'ball');
+      if (dx * dx + dy * dy < (b.r + .35) * (b.r + .35)) {
+        if (s.shock > 0) { zapBall(S, b, s); break; }
+        if (s.mirror > 0) { var dd = Math.hypot(dx, dy) || 1, sp = Math.hypot(b.vx, b.vy); b.vx = -dx / dd * sp; b.vy = -dy / dd * sp; b.x -= dx / dd * .4; b.y -= dy / dd * .4; S.events.push({ t: 'reflect', id: s.id, x: b.x, y: b.y }); continue; }
+        kill(S, s, 'ball');
+      }
     }
   }
   for (i = 0; i < S.crabs.length; i++) {
@@ -975,11 +1106,19 @@ function collide(S) {
       s = S.snakes[j];
       if (s.dead > 0 || s.inv > 0) continue;
       var ex = s.x + .5 - c.x, ey = s.y + .5 - c.y;
-      if (ex * ex + ey * ey < 0.7 * 0.7) kill(S, s, 'crab');
+      if (ex * ex + ey * ey < 0.7 * 0.7) {
+        if (s.shock > 0) { c.gone = 6; S.events.push({ t: 'zap', id: s.id, x: c.x, y: c.y }); break; }
+        if (s.mirror > 0) { c.vx = -c.vx; c.vy = -c.vy; c.x += c.vx * 0.05; c.y += c.vy * 0.05; continue; }
+        kill(S, s, 'crab');
+      }
     }
   }
 }
 
+function zapBall(S, b, o) {
+  b.stun = Math.max(b.stun || 0, b.boss ? 1.8 : 3); b.vx = -b.vx; b.vy = -b.vy; if (b.boss) b.lunge = 0;
+  S.events.push({ t: 'zap', id: o.id, x: b.x, y: b.y });
+}
 function pct(S, s) { return s.area / S.seaTotal; }
 function seaLeft(S) { var n = 0; for (var i = 0; i < S.N; i++) if (S.grid[i] === SEA) n++; return n / S.seaTotal; }
 
@@ -1177,11 +1316,12 @@ function r2(v) { return Math.round(v * 100) / 100; }
 function snap(S, withGrid, events) {
   return {
     t: r2(S.t), v: S.ver, g: withGrid ? Array.prototype.join.call(S.grid, '') : null,
-    sn: S.snakes.map(function (s) { return [s.x, s.y, s.dir, s.moving ? 1 : 0, r2(s.acc), s.trail.slice(), s.lives, r2(s.dead), r2(s.inv), r2(s.para), s.ammo || '', s.ammoN, s.area, s.cuts, s.hist.slice(0, 6), r2(s.speed)]; }),
+    sn: S.snakes.map(function (s) { return [s.x, s.y, s.dir, s.moving ? 1 : 0, r2(s.acc), s.trail.slice(), s.lives, r2(s.dead), r2(s.inv), r2(s.para), s.ammo || '', s.ammoN, s.area, s.cuts, s.hist.slice(0, 6), r2(s.speed), s.wp || '', s.wpN, r2(s.wpCd), r2(s.shock), r2(s.mirror)]; }),
     b: S.balls.map(function (b) { return [r2(b.x), r2(b.y), r2(b.vx), r2(b.vy), r2(b.stun || 0), r2(b.gone || 0), r2(b.ice || 0), b.r, b.big ? 1 : 0, r2(b.ph)]; }),
     c: S.crabs.map(function (c) { return [r2(c.x), r2(c.y), r2(c.vx), r2(c.vy), r2(c.gone || 0), r2(c.ph)]; }),
     it: S.items.map(function (i) { return [i.x, i.y, i.type, r2(i.t)]; }),
     sh: S.shots.map(function (p) { return [r2(p.x), r2(p.y), r2(p.vx), r2(p.vy), p.type, p.owner]; }),
+    mn: S.mines.map(function (m) { return [m.x, m.y, m.owner, r2(m.arm)]; }), sl: r2(S.slow), sb: S.slowBy,
     fz: r2(S.freeze), sc: S.score, o: S.over ? 1 : 0, r: S.result, ev: events || []
   };
 }
@@ -1193,12 +1333,14 @@ function applySnap(S, m) {
     var s = S.snakes[k]; if (!s) return;
     s.x = a[0]; s.y = a[1]; s.dir = a[2]; s.moving = !!a[3]; s.acc = a[4]; s.trail = a[5]; s.lives = a[6]; s.dead = a[7]; s.inv = a[8]; s.para = a[9];
     s.ammo = a[10] || null; s.ammoN = a[11]; s.area = a[12]; s.cuts = a[13]; s.hist = a[14]; s.speed = a[15];
+    s.wp = a[16] || null; s.wpN = a[17] || 0; s.wpCd = a[18] || 0; s.shock = a[19] || 0; s.mirror = a[20] || 0;
     for (var j = 0; j < s.trail.length; j++) S.trail[s.trail[j]] = s.id;
   });
   S.balls = m.b.map(function (a, k) { var o = S.balls[k] || {}; o.x = a[0]; o.y = a[1]; o.vx = a[2]; o.vy = a[3]; o.stun = a[4]; o.gone = a[5]; o.ice = a[6]; o.r = a[7]; o.big = !!a[8]; o.ph = a[9]; return o; });
   S.crabs = m.c.map(function (a, k) { var o = S.crabs[k] || {}; o.x = a[0]; o.y = a[1]; o.vx = a[2]; o.vy = a[3]; o.gone = a[4]; o.ph = a[5]; return o; });
   S.items = m.it.map(function (a) { return { x: a[0], y: a[1], type: a[2], t: a[3], life: 12 }; });
   S.shots = m.sh.map(function (a) { return { x: a[0], y: a[1], vx: a[2], vy: a[3], type: a[4], owner: a[5], t: 1 }; });
+  S.mines = (m.mn || []).map(function (a) { return { x: a[0], y: a[1], owner: a[2], arm: a[3], t: 30 }; }); S.slow = m.sl || 0; S.slowBy = m.sb || 0;
   S.freeze = m.fz; S.score = m.sc; S.over = !!m.o; S.result = m.r;
 }
 /* guest: move things between snapshots so motion looks smooth (no collisions, no rules) */
@@ -1210,12 +1352,13 @@ function drift(S, dt) {
   for (i = 0; i < S.snakes.length; i++) { var s = S.snakes[i]; if (s.moving && !(s.para > 0) && s.dead <= 0) s.acc = Math.min(0.95, s.acc + dt * s.speed); }
 }
 
-var API = { SEA: SEA, NEU: NEU, DX: DX, DY: DY, STEP: STEP, rng: rng, create: create, step: step, levelCfg: levelCfg, duelCfg: duelCfg, dailyCfg: dailyCfg, makeBot: makeBot, pct: pct, seaLeft: seaLeft, snap: snap, applySnap: applySnap, drift: drift };
+var API = { WPN: WPN, useWeapon: useWeapon, SEA: SEA, NEU: NEU, DX: DX, DY: DY, STEP: STEP, rng: rng, create: create, step: step, levelCfg: levelCfg, duelCfg: duelCfg, dailyCfg: dailyCfg, makeBot: makeBot, pct: pct, seaLeft: seaLeft, snap: snap, applySnap: applySnap, drift: drift };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.SNE = API;
 })(this);
 </script>
 <script>var LANG = {
 he: {
+  w7: "מעמקי הים", w7d: "ערים טבועות, בתולות ים ומפלצות מעמקים", w8: "ממלכת השמיים", w8d: "איים מרחפים, גריפונים וספינות אוויר", w9: "העולם התחתון", w9d: "שערי עצמות, שדים והבוס האחרון", sh_wpn: "נשקים מיוחדים", sh_wpn_note: "קונים פעם אחת ומשדרגים. בוחרים נשק אחד לכל משחק, והכפתור שלו מופיע במסך המשחק.", equip: "בחר", equipped: "בשימוש", wp_missile: "טיל מונחה", wp_missile_d: "מחפש לבד את היצור הקרוב ומתפוצץ עליו", wp_spin: "פגזים מסתובבים", wp_spin_d: "שלושה פגזים בספירלה שמכסים שטח רחב — קשה לכוון, כיף לפגוע", wp_shock: "שוקר", wp_shock_d: "הגוף והזנב מתחשמלים לכמה שניות — מי שנוגע בך משותק", wp_mine: "מוקש", wp_mine_d: "משאירים מאחור, ומי שעובר עליו מתפוצץ", wp_mirror: "מגן מראה", wp_mirror_d: "בועה סביב הראש שמחזירה יריות ויצורים", wp_slow: "האטת זמן", wp_slow_d: "כל היצורים והיריב זזים לאט לכמה שניות", wp_lv: "{n} שימושים בכל משחק", t_wpn_missile: "טיל שוגר!", t_wpn_spin: "פגזים!", t_wpn_shock: "שוקר פעיל!", t_wpn_mine: "מוקש הונח", t_wpn_mirror: "מגן מראה!", t_wpn_slow: "הזמן הואט!", t_zap: "התחשמל!", t_zap_me: "התחשמלת!", t_reflect: "הוחזר!", t_boom: "בום!", on_wpn: "נשקים מיוחדים באונליין", r11: "נשקים מיוחדים: קונים בחנות טיל מונחה, פגזים מסתובבים, שוקר, מוקש, מגן מראה או האטת זמן. הכפתור השמאלי מפעיל את הנשק שבחרת.", a_boss9: "אדון העולם התחתון", a_boss9_d: "נצח את כל תשעת הבוסים", a_arsenal: "ארסנל", a_arsenal_d: "קנה את כל ששת הנשקים המיוחדים",
   sh_title: "חנות", ach_title: "הישגים", coins: "מטבעות", buy: "קנה", maxed: "מקסימום", no_coins: "אין מספיק מטבעות", bought: "שודרג!", up_note: "השדרוגים פועלים בשלבים, באתגר היומי ונגד המחשב — לא באונליין, כדי שהקרב מול חבר יהיה הוגן.", res_coins: "מטבעות", ach_got: "הישג: {n}", t_shield: "המגן הציל את הזנב!", lvl_of: "רמה {a}/{b}", ach_count: "{a} מתוך {b}", up_speed: "נחש מהיר", up_speed_d: "+4% מהירות בכל רמה", up_ammo: "תחמושת התחלתית", up_ammo_d: "מתחילים כל שלב עם יריות ארס (2/3/4)", up_magnet: "מגנט בונוסים", up_magnet_d: "אוסף בונוסים מרחוק — משבצת או שתיים מהראש", up_dur: "בונוסים ארוכים", up_dur_d: "האצה והקפאה נמשכות 20% יותר בכל רמה", up_life: "חיים נוספים", up_life_d: "+1 חיים בתחילת כל שלב", up_shield: "מגן זנב", up_shield_d: "פעם אחת בכל שלב, פגיעה בזנב לא פוסלת", a_cap1: "צעד ראשון", a_cap1_d: "סגור את השטח הראשון שלך", a_big: "סגירה ענקית", a_big_d: "סגור 25% מהים במכה אחת", a_combo: "קומבו מטורף", a_combo_d: "הגע לקומבו x5", a_boss1: "צייד בוסים", a_boss1_d: "נצח בוס ראשון", a_boss6: "מלך הנחשים", a_boss6_d: "נצח את כל ששת הבוסים", a_world1: "כובש המדבר", a_world1_d: "סיים את כל שלבי עולם 1", a_st30: "אספן כוכבים", a_st30_d: "אסוף 30 כוכבים", a_st120: "אגדה", a_st120_d: "אסוף 120 כוכבים", a_cuts: "מספריים", a_cuts_d: "חתוך 10 זנבות", a_paras: "ארסי", a_paras_d: "שתק יריבים 10 פעמים", a_shots: "צלף", a_shots_d: "ירה 100 יריות", a_items: "אספן", a_items_d: "אסוף 50 בונוסים", a_champ: "אלוף האלופים", a_champ_d: "נצח את המחשב ברמת אלוף", a_online: "קרב ראשון", a_online_d: "נצח חבר באונליין", a_streak: "נאמן", a_streak_d: "רצף של 7 ימים באתגר היומי", a_pics: "אוצר", a_pics_d: "פתח 20 תמונות בגלריה", a_clean: "בלי שריטה", a_clean_d: "נצח בוס בלי לאבד חיים", a_rich: "עשיר", a_rich_d: "הרווח 1,000 מטבעות",
   play_online: 'אונליין עם חבר', on_sub: 'קרב נחשים עם קול', on_desc: 'קרב נחשים מול חבר: כל אחד סוגר שטחים בצבע שלו, יורה, וחותך לשני את הזנב. מדברים תוך כדי משחק.', on_host: 'פתח חדר', on_join: 'יש לך קוד? הצטרף', on_enter: 'קוד', on_code: 'קוד החדר', on_invite: 'הזמן בוואטסאפ', on_copy: 'העתק קישור', on_copied: 'הקישור הועתק', on_inv_txt: 'בוא לקרב נחשים נגדי:', on_waiting: 'מחכה שהחבר יצטרף…', on_connecting: 'מתחבר…', on_open: 'מחוברים!', on_reconn: 'מתחבר מחדש…', on_start: 'התחל קרב', on_wait_host: 'מחכים שהמארח יתחיל', on_leave: 'עזוב את החדר', on_back_room: 'חזרה לחדר', seat_host: 'מארח', seat_guest: 'אורח', seat_empty: 'מקום פנוי', on_notfound: 'החדר לא נמצא — בדוק את הקוד', on_full: 'החדר מלא', on_err: 'החיבור נכשל — נסה שוב', v_ptt: 'לחץ ודבר', v_open: 'מיקרופון פתוח', v_msg: 'הודעה קולית', v_talking: '{n} מדבר', v_tap: 'הקש כדי לשמוע', v_denied: 'אין גישה למיקרופון', v_privacy: 'הקול עובר ישירות בין הטלפונים ולא נשמר', on_ver: 'לחבר יש גרסה אחרת של המשחק — כדאי לעדכן', on_lost: 'החיבור עם החבר נותק… מחכים', friend: 'חבר',
   am_venom: 'ארס', am_fire: 'אש', am_ice: 'קרח', am_bolt: 'ברק', t_para_hit: 'שיתקת אותו!', t_para_me: 'שותקת!', r10: 'תחמושת: אסוף 🧪 ארס, 🔥 אש, ❄️ קרח או ⚡ ברק — כל אחד נותן 3 יריות, והכפתור העגול יורק בכיוון שאתה זז. ארס משתק את היריב ויצורים, אש שורפת יצור ומעלימה אותו לכמה שניות, קרח מקפיא, וברק חותך את הזנב של היריב. גם המחשב והבוסים יורים — תזוז!',
@@ -1263,6 +1406,7 @@ he: {
   daily_res: 'אתגר יומי', new_skin: 'נחש חדש נפתח: {s}!', time_left: 'זמן', lives: 'חיים'
 },
 en: {
+  w7: "Ocean Depths", w7d: "Sunken cities, mermaids and deep-sea monsters", w8: "Sky Kingdom", w8d: "Floating islands, griffins and airships", w9: "The Underworld", w9d: "Bone gates, demons and the final boss", sh_wpn: "Special weapons", sh_wpn_note: "Buy once, then upgrade. Pick one weapon per game — its button appears on the game screen.", equip: "Equip", equipped: "Equipped", wp_missile: "Homing missile", wp_missile_d: "Hunts the nearest creature and explodes on it", wp_spin: "Spinning shells", wp_spin_d: "Three shells in a spiral covering a wide area — hard to aim, fun to land", wp_shock: "Shocker", wp_shock_d: "Your body and tail are electrified for a few seconds — whoever touches you is stunned", wp_mine: "Mine", wp_mine_d: "Drop it behind you; whoever passes over it explodes", wp_mirror: "Mirror shield", wp_mirror_d: "A bubble around your head that bounces shots and creatures back", wp_slow: "Time slow", wp_slow_d: "All creatures and the rival move slowly for a few seconds", wp_lv: "{n} uses per game", t_wpn_missile: "Missile away!", t_wpn_spin: "Shells!", t_wpn_shock: "Shocker on!", t_wpn_mine: "Mine placed", t_wpn_mirror: "Mirror shield!", t_wpn_slow: "Time slowed!", t_zap: "Zapped!", t_zap_me: "You got zapped!", t_reflect: "Reflected!", t_boom: "Boom!", on_wpn: "Special weapons online", r11: "Special weapons: buy a homing missile, spinning shells, shocker, mine, mirror shield or time slow in the shop. The left button fires the weapon you picked.", a_boss9: "Lord of the Underworld", a_boss9_d: "Beat all nine bosses", a_arsenal: "Arsenal", a_arsenal_d: "Buy all six special weapons",
   sh_title: "Shop", ach_title: "Achievements", coins: "Coins", buy: "Buy", maxed: "Max", no_coins: "Not enough coins", bought: "Upgraded!", up_note: "Upgrades work in levels, the daily challenge and vs computer — not online, so battles with friends stay fair.", res_coins: "Coins", ach_got: "Achievement: {n}", t_shield: "The shield saved your tail!", lvl_of: "Level {a}/{b}", ach_count: "{a} of {b}", up_speed: "Fast snake", up_speed_d: "+4% speed per level", up_ammo: "Starting ammo", up_ammo_d: "Start every level with venom shots (2/3/4)", up_magnet: "Bonus magnet", up_magnet_d: "Grab bonuses from a distance — one or two cells from your head", up_dur: "Longer bonuses", up_dur_d: "Speed and freeze last 20% longer per level", up_life: "Extra life", up_life_d: "+1 life at the start of every level", up_shield: "Tail shield", up_shield_d: "Once per level, a hit on your tail doesn’t count", a_cap1: "First step", a_cap1_d: "Close your first area", a_big: "Huge capture", a_big_d: "Close 25% of the sea in one go", a_combo: "Crazy combo", a_combo_d: "Reach a x5 combo", a_boss1: "Boss hunter", a_boss1_d: "Beat your first boss", a_boss6: "Snake king", a_boss6_d: "Beat all six bosses", a_world1: "Desert conqueror", a_world1_d: "Finish every level of world 1", a_st30: "Star collector", a_st30_d: "Collect 30 stars", a_st120: "Legend", a_st120_d: "Collect 120 stars", a_cuts: "Scissors", a_cuts_d: "Cut 10 tails", a_paras: "Venomous", a_paras_d: "Paralyze rivals 10 times", a_shots: "Sharpshooter", a_shots_d: "Fire 100 shots", a_items: "Collector", a_items_d: "Collect 50 bonuses", a_champ: "Champion of champions", a_champ_d: "Beat the computer on Champion", a_online: "First battle", a_online_d: "Beat a friend online", a_streak: "Loyal", a_streak_d: "A 7-day daily challenge streak", a_pics: "Treasure", a_pics_d: "Unlock 20 gallery pictures", a_clean: "Not a scratch", a_clean_d: "Beat a boss without losing a life", a_rich: "Rich", a_rich_d: "Earn 1,000 coins",
   play_online: 'Online with a friend', on_sub: 'Snake battle with voice', on_desc: 'A snake battle against a friend: each closes land in their own color, shoots, and cuts the other’s tail. Talk while you play.', on_host: 'Open a room', on_join: 'Got a code? Join', on_enter: 'Code', on_code: 'Room code', on_invite: 'Invite on WhatsApp', on_copy: 'Copy link', on_copied: 'Link copied', on_inv_txt: 'come battle my snake:', on_waiting: 'Waiting for your friend…', on_connecting: 'Connecting…', on_open: 'Connected!', on_reconn: 'Reconnecting…', on_start: 'Start battle', on_wait_host: 'Waiting for the host to start', on_leave: 'Leave room', on_back_room: 'Back to the room', seat_host: 'Host', seat_guest: 'Guest', seat_empty: 'Free seat', on_notfound: 'Room not found — check the code', on_full: 'The room is full', on_err: 'Connection failed — try again', v_ptt: 'Push to talk', v_open: 'Open mic', v_msg: 'Voice message', v_talking: '{n} is talking', v_tap: 'Tap to listen', v_denied: 'No microphone access', v_privacy: 'Voice goes directly between the phones and is not saved', on_ver: 'Your friend has another game version — worth updating', on_lost: 'Lost connection with your friend… waiting', friend: 'Friend',
   am_venom: 'Venom', am_fire: 'Fire', am_ice: 'Ice', am_bolt: 'Bolt', t_para_hit: 'You paralyzed it!', t_para_me: 'Paralyzed!', r10: 'Ammo: grab 🧪 venom, 🔥 fire, ❄️ ice or ⚡ bolt — each gives 3 shots, and the round button spits in the direction you move. Venom paralyzes rivals and creatures, fire burns a creature away for a few seconds, ice freezes, and a bolt cuts the rival’s tail. The computer and bosses shoot too — keep moving!',
@@ -1310,6 +1454,7 @@ en: {
   daily_res: 'Daily challenge', new_skin: 'New snake unlocked: {s}!', time_left: 'Time', lives: 'Lives'
 },
 ru: {
+  w7: "Морские глубины", w7d: "Затонувшие города, русалки и чудища бездны", w8: "Небесное царство", w8d: "Парящие острова, грифоны и воздушные корабли", w9: "Подземный мир", w9d: "Врата из костей, демоны и последний босс", sh_wpn: "Особое оружие", sh_wpn_note: "Покупается один раз, потом улучшается. Выберите одно оружие на игру — его кнопка появится на экране.", equip: "Выбрать", equipped: "Выбрано", wp_missile: "Самонаводящаяся ракета", wp_missile_d: "Сама находит ближайшее существо и взрывается", wp_spin: "Вращающиеся снаряды", wp_spin_d: "Три снаряда по спирали накрывают большую площадь — трудно целиться, приятно попасть", wp_shock: "Электрошок", wp_shock_d: "Тело и хвост под током несколько секунд — кто коснётся, тот оглушён", wp_mine: "Мина", wp_mine_d: "Оставьте позади — кто наедет, взорвётся", wp_mirror: "Зеркальный щит", wp_mirror_d: "Пузырь вокруг головы отражает выстрелы и существ", wp_slow: "Замедление времени", wp_slow_d: "Все существа и соперник замедляются на несколько секунд", wp_lv: "{n} раз за игру", t_wpn_missile: "Ракета пошла!", t_wpn_spin: "Снаряды!", t_wpn_shock: "Шокер включён!", t_wpn_mine: "Мина установлена", t_wpn_mirror: "Зеркальный щит!", t_wpn_slow: "Время замедлено!", t_zap: "Удар током!", t_zap_me: "Тебя ударило током!", t_reflect: "Отражено!", t_boom: "Бум!", on_wpn: "Особое оружие онлайн", r11: "Особое оружие: в магазине — ракета, вращающиеся снаряды, шокер, мина, зеркальный щит или замедление времени. Левая кнопка включает выбранное оружие.", a_boss9: "Владыка подземного мира", a_boss9_d: "Победите всех девять боссов", a_arsenal: "Арсенал", a_arsenal_d: "Купите все шесть видов оружия",
   sh_title: "Магазин", ach_title: "Достижения", coins: "Монеты", buy: "Купить", maxed: "Макс.", no_coins: "Не хватает монет", bought: "Улучшено!", up_note: "Улучшения работают в уровнях, задании дня и против компьютера — не онлайн, чтобы битва с другом была честной.", res_coins: "Монеты", ach_got: "Достижение: {n}", t_shield: "Щит спас хвост!", lvl_of: "Уровень {a}/{b}", ach_count: "{a} из {b}", up_speed: "Быстрая змея", up_speed_d: "+4% скорости за уровень", up_ammo: "Стартовые патроны", up_ammo_d: "Каждый уровень начинается с ядом (2/3/4)", up_magnet: "Магнит бонусов", up_magnet_d: "Собирает бонусы на расстоянии — 1–2 клетки от головы", up_dur: "Долгие бонусы", up_dur_d: "Ускорение и заморозка дольше на 20% за уровень", up_life: "Лишняя жизнь", up_life_d: "+1 жизнь в начале каждого уровня", up_shield: "Щит хвоста", up_shield_d: "Раз за уровень удар по хвосту не считается", a_cap1: "Первый шаг", a_cap1_d: "Захвати первый участок", a_big: "Огромный захват", a_big_d: "Захвати 25% моря за раз", a_combo: "Безумное комбо", a_combo_d: "Достигни комбо x5", a_boss1: "Охотник на боссов", a_boss1_d: "Победи первого босса", a_boss6: "Король змей", a_boss6_d: "Победи всех шесть боссов", a_world1: "Покоритель пустыни", a_world1_d: "Пройди все уровни мира 1", a_st30: "Собиратель звёзд", a_st30_d: "Собери 30 звёзд", a_st120: "Легенда", a_st120_d: "Собери 120 звёзд", a_cuts: "Ножницы", a_cuts_d: "Перережь 10 хвостов", a_paras: "Ядовитый", a_paras_d: "Парализуй соперников 10 раз", a_shots: "Снайпер", a_shots_d: "Сделай 100 выстрелов", a_items: "Коллекционер", a_items_d: "Собери 50 бонусов", a_champ: "Чемпион чемпионов", a_champ_d: "Победи компьютер на уровне «Чемпион»", a_online: "Первая битва", a_online_d: "Победи друга онлайн", a_streak: "Верный", a_streak_d: "Серия 7 дней в задании дня", a_pics: "Сокровище", a_pics_d: "Открой 20 картин", a_clean: "Ни царапины", a_clean_d: "Победи босса без потери жизни", a_rich: "Богач", a_rich_d: "Заработай 1000 монет",
   play_online: 'Онлайн с другом', on_sub: 'Битва змей с голосом', on_desc: 'Битва змей против друга: каждый захватывает землю своим цветом, стреляет и режет хвост другому. Общайтесь во время игры.', on_host: 'Создать комнату', on_join: 'Есть код? Войти', on_enter: 'Код', on_code: 'Код комнаты', on_invite: 'Пригласить в WhatsApp', on_copy: 'Копировать ссылку', on_copied: 'Ссылка скопирована', on_inv_txt: 'давай сразимся змеями:', on_waiting: 'Ждём друга…', on_connecting: 'Подключение…', on_open: 'Подключено!', on_reconn: 'Переподключение…', on_start: 'Начать битву', on_wait_host: 'Ждём, пока хозяин начнёт', on_leave: 'Выйти из комнаты', on_back_room: 'Назад в комнату', seat_host: 'Хозяин', seat_guest: 'Гость', seat_empty: 'Свободно', on_notfound: 'Комната не найдена — проверь код', on_full: 'Комната заполнена', on_err: 'Не удалось подключиться — попробуй ещё', v_ptt: 'Нажми и говори', v_open: 'Открытый микрофон', v_msg: 'Голосовое', v_talking: '{n} говорит', v_tap: 'Нажми, чтобы услышать', v_denied: 'Нет доступа к микрофону', v_privacy: 'Голос идёт напрямую между телефонами и не сохраняется', on_ver: 'У друга другая версия игры — стоит обновить', on_lost: 'Связь с другом потеряна… ждём', friend: 'Друг',
   am_venom: 'Яд', am_fire: 'Огонь', am_ice: 'Лёд', am_bolt: 'Молния', t_para_hit: 'Ты его парализовал!', t_para_me: 'Паралич!', r10: 'Боеприпасы: собирай 🧪 яд, 🔥 огонь, ❄️ лёд или ⚡ молнию — каждый даёт 3 выстрела, а круглая кнопка плюёт туда, куда ты движешься. Яд парализует соперника и существ, огонь сжигает существо на несколько секунд, лёд замораживает, молния перерезает хвост соперника. Компьютер и боссы тоже стреляют — двигайся!',
@@ -1357,6 +1502,7 @@ ru: {
   daily_res: 'Задание дня', new_skin: 'Новая змея: {s}!', time_left: 'Время', lives: 'Жизни'
 },
 es: {
+  w7: "Profundidades marinas", w7d: "Ciudades hundidas, sirenas y monstruos abisales", w8: "Reino del cielo", w8d: "Islas flotantes, grifos y naves aéreas", w9: "El inframundo", w9d: "Puertas de hueso, demonios y el jefe final", sh_wpn: "Armas especiales", sh_wpn_note: "Se compran una vez y se mejoran. Elige un arma por partida: su botón aparece en la pantalla de juego.", equip: "Elegir", equipped: "En uso", wp_missile: "Misil guiado", wp_missile_d: "Busca la criatura más cercana y explota sobre ella", wp_spin: "Proyectiles giratorios", wp_spin_d: "Tres proyectiles en espiral que cubren mucho terreno: difícil de apuntar, divertido acertar", wp_shock: "Electrochoque", wp_shock_d: "Cuerpo y cola electrificados unos segundos: quien te toque queda paralizado", wp_mine: "Mina", wp_mine_d: "Déjala atrás: quien pase encima explota", wp_mirror: "Escudo espejo", wp_mirror_d: "Una burbuja en la cabeza que devuelve disparos y criaturas", wp_slow: "Tiempo lento", wp_slow_d: "Todas las criaturas y el rival se mueven lento unos segundos", wp_lv: "{n} usos por partida", t_wpn_missile: "¡Misil lanzado!", t_wpn_spin: "¡Proyectiles!", t_wpn_shock: "¡Electrochoque!", t_wpn_mine: "Mina colocada", t_wpn_mirror: "¡Escudo espejo!", t_wpn_slow: "¡Tiempo lento!", t_zap: "¡Electrocutado!", t_zap_me: "¡Te electrocutaron!", t_reflect: "¡Devuelto!", t_boom: "¡Bum!", on_wpn: "Armas especiales online", r11: "Armas especiales: en la tienda hay misil guiado, proyectiles giratorios, electrochoque, mina, escudo espejo y tiempo lento. El botón izquierdo activa el arma elegida.", a_boss9: "Señor del inframundo", a_boss9_d: "Vence a los nueve jefes", a_arsenal: "Arsenal", a_arsenal_d: "Compra las seis armas especiales",
   sh_title: "Tienda", ach_title: "Logros", coins: "Monedas", buy: "Comprar", maxed: "Máx.", no_coins: "No tienes monedas suficientes", bought: "¡Mejorado!", up_note: "Las mejoras funcionan en niveles, reto diario y contra la máquina — no online, para que la batalla con amigos sea justa.", res_coins: "Monedas", ach_got: "Logro: {n}", t_shield: "¡El escudo salvó tu cola!", lvl_of: "Nivel {a}/{b}", ach_count: "{a} de {b}", up_speed: "Serpiente rápida", up_speed_d: "+4% de velocidad por nivel", up_ammo: "Munición inicial", up_ammo_d: "Empieza cada nivel con veneno (2/3/4)", up_magnet: "Imán de bonos", up_magnet_d: "Recoge bonos a distancia — una o dos casillas", up_dur: "Bonos largos", up_dur_d: "Velocidad y congelación duran 20% más por nivel", up_life: "Vida extra", up_life_d: "+1 vida al inicio de cada nivel", up_shield: "Escudo de cola", up_shield_d: "Una vez por nivel, un golpe en la cola no cuenta", a_cap1: "Primer paso", a_cap1_d: "Cierra tu primera zona", a_big: "Captura enorme", a_big_d: "Cierra el 25% del mar de una vez", a_combo: "Combo loco", a_combo_d: "Llega a un combo x5", a_boss1: "Cazajefes", a_boss1_d: "Vence a tu primer jefe", a_boss6: "Rey serpiente", a_boss6_d: "Vence a los seis jefes", a_world1: "Conquistador del desierto", a_world1_d: "Termina todos los niveles del mundo 1", a_st30: "Coleccionista", a_st30_d: "Consigue 30 estrellas", a_st120: "Leyenda", a_st120_d: "Consigue 120 estrellas", a_cuts: "Tijeras", a_cuts_d: "Corta 10 colas", a_paras: "Venenoso", a_paras_d: "Paraliza rivales 10 veces", a_shots: "Francotirador", a_shots_d: "Dispara 100 veces", a_items: "Recolector", a_items_d: "Recoge 50 bonos", a_champ: "Campeón de campeones", a_champ_d: "Vence a la máquina en Campeón", a_online: "Primera batalla", a_online_d: "Vence a un amigo online", a_streak: "Fiel", a_streak_d: "Racha de 7 días en el reto diario", a_pics: "Tesoro", a_pics_d: "Desbloquea 20 imágenes", a_clean: "Ni un rasguño", a_clean_d: "Vence a un jefe sin perder vidas", a_rich: "Rico", a_rich_d: "Gana 1.000 monedas",
   play_online: 'Online con un amigo', on_sub: 'Batalla de serpientes con voz', on_desc: 'Una batalla de serpientes contra un amigo: cada uno cierra tierra con su color, dispara y corta la cola del otro. Hablad mientras jugáis.', on_host: 'Abrir sala', on_join: '¿Tienes código? Únete', on_enter: 'Código', on_code: 'Código de sala', on_invite: 'Invitar por WhatsApp', on_copy: 'Copiar enlace', on_copied: 'Enlace copiado', on_inv_txt: 'ven a luchar contra mi serpiente:', on_waiting: 'Esperando a tu amigo…', on_connecting: 'Conectando…', on_open: '¡Conectados!', on_reconn: 'Reconectando…', on_start: 'Empezar batalla', on_wait_host: 'Esperando a que el anfitrión empiece', on_leave: 'Salir de la sala', on_back_room: 'Volver a la sala', seat_host: 'Anfitrión', seat_guest: 'Invitado', seat_empty: 'Libre', on_notfound: 'Sala no encontrada — revisa el código', on_full: 'La sala está llena', on_err: 'Falló la conexión — inténtalo de nuevo', v_ptt: 'Pulsa y habla', v_open: 'Micro abierto', v_msg: 'Mensaje de voz', v_talking: '{n} está hablando', v_tap: 'Toca para escuchar', v_denied: 'Sin acceso al micrófono', v_privacy: 'La voz va directa entre los teléfonos y no se guarda', on_ver: 'Tu amigo tiene otra versión del juego — conviene actualizar', on_lost: 'Se perdió la conexión con tu amigo… esperando', friend: 'Amigo',
   am_venom: 'Veneno', am_fire: 'Fuego', am_ice: 'Hielo', am_bolt: 'Rayo', t_para_hit: '¡Lo paralizaste!', t_para_me: '¡Paralizado!', r10: 'Munición: recoge 🧪 veneno, 🔥 fuego, ❄️ hielo o ⚡ rayo — cada uno da 3 disparos, y el botón redondo escupe hacia donde te mueves. El veneno paraliza a rivales y criaturas, el fuego hace desaparecer una criatura unos segundos, el hielo congela y el rayo corta la cola del rival. La máquina y los jefes también disparan: ¡muévete!',
@@ -1404,6 +1550,7 @@ es: {
   daily_res: 'Reto diario', new_skin: 'Nueva serpiente: {s}!', time_left: 'Tiempo', lives: 'Vidas'
 },
 ar: {
+  w7: "أعماق البحر", w7d: "مدن غارقة وحوريات ووحوش الأعماق", w8: "مملكة السماء", w8d: "جزر طائرة وغريفين وسفن هوائية", w9: "العالم السفلي", w9d: "بوابات العظام والشياطين والزعيم الأخير", sh_wpn: "أسلحة خاصة", sh_wpn_note: "تُشترى مرة واحدة ثم تُطوَّر. اختر سلاحًا واحدًا لكل لعبة، ويظهر زره في شاشة اللعب.", equip: "اختيار", equipped: "مستخدم", wp_missile: "صاروخ موجَّه", wp_missile_d: "يبحث وحده عن أقرب مخلوق وينفجر عليه", wp_spin: "قذائف دوّارة", wp_spin_d: "ثلاث قذائف حلزونية تغطي مساحة واسعة — صعبة التصويب وممتعة الإصابة", wp_shock: "صاعق", wp_shock_d: "يتكهرب الجسم والذيل لثوانٍ — من يلمسك يُشَلّ", wp_mine: "لغم", wp_mine_d: "اتركه خلفك، ومن يمرّ فوقه ينفجر", wp_mirror: "درع المرآة", wp_mirror_d: "فقاعة حول الرأس تردّ الطلقات والمخلوقات", wp_slow: "إبطاء الزمن", wp_slow_d: "تتحرك كل المخلوقات والخصم ببطء لثوانٍ", wp_lv: "{n} استخدامات لكل لعبة", t_wpn_missile: "انطلق الصاروخ!", t_wpn_spin: "قذائف!", t_wpn_shock: "الصاعق يعمل!", t_wpn_mine: "تم زرع لغم", t_wpn_mirror: "درع المرآة!", t_wpn_slow: "تباطأ الزمن!", t_zap: "تكهرب!", t_zap_me: "تكهربت!", t_reflect: "ارتدّ!", t_boom: "بوم!", on_wpn: "أسلحة خاصة أونلاين", r11: "أسلحة خاصة: اشترِ من المتجر صاروخًا موجّهًا أو قذائف دوّارة أو صاعقًا أو لغمًا أو درع مرآة أو إبطاء الزمن. الزر الأيسر يفعّل السلاح الذي اخترته.", a_boss9: "سيد العالم السفلي", a_boss9_d: "اهزم الزعماء التسعة", a_arsenal: "ترسانة", a_arsenal_d: "اشترِ الأسلحة الستة كلها",
   sh_title: "المتجر", ach_title: "الإنجازات", coins: "العملات", buy: "اشترِ", maxed: "الحد الأقصى", no_coins: "العملات غير كافية", bought: "تمت الترقية!", up_note: "الترقيات تعمل في المراحل وتحدي اليوم وضد الحاسوب — وليس أونلاين، كي تبقى المعركة مع الأصدقاء عادلة.", res_coins: "العملات", ach_got: "إنجاز: {n}", t_shield: "الدرع أنقذ ذيلك!", lvl_of: "المستوى {a}/{b}", ach_count: "{a} من {b}", up_speed: "ثعبان سريع", up_speed_d: "+4% سرعة لكل مستوى", up_ammo: "ذخيرة البداية", up_ammo_d: "ابدأ كل مرحلة بطلقات سم (2/3/4)", up_magnet: "مغناطيس المكافآت", up_magnet_d: "يلتقط المكافآت عن بُعد — خانة أو خانتان", up_dur: "مكافآت أطول", up_dur_d: "السرعة والتجميد يدومان 20% أكثر لكل مستوى", up_life: "روح إضافية", up_life_d: "+1 روح في بداية كل مرحلة", up_shield: "درع الذيل", up_shield_d: "مرة في كل مرحلة، لا تُحتسب ضربة على الذيل", a_cap1: "الخطوة الأولى", a_cap1_d: "أغلق أول منطقة لك", a_big: "استيلاء ضخم", a_big_d: "أغلق 25% من البحر دفعة واحدة", a_combo: "كومبو مجنون", a_combo_d: "صل إلى كومبو x5", a_boss1: "صياد الزعماء", a_boss1_d: "اهزم أول زعيم", a_boss6: "ملك الثعابين", a_boss6_d: "اهزم الزعماء الستة", a_world1: "فاتح الصحراء", a_world1_d: "أنهِ كل مراحل العالم 1", a_st30: "جامع النجوم", a_st30_d: "اجمع 30 نجمة", a_st120: "أسطورة", a_st120_d: "اجمع 120 نجمة", a_cuts: "مقص", a_cuts_d: "اقطع 10 ذيول", a_paras: "سام", a_paras_d: "اشلّ الخصوم 10 مرات", a_shots: "قناص", a_shots_d: "أطلق 100 طلقة", a_items: "جامع", a_items_d: "اجمع 50 مكافأة", a_champ: "بطل الأبطال", a_champ_d: "اهزم الحاسوب في مستوى البطل", a_online: "المعركة الأولى", a_online_d: "اهزم صديقًا أونلاين", a_streak: "وفيّ", a_streak_d: "سلسلة 7 أيام في تحدي اليوم", a_pics: "كنز", a_pics_d: "افتح 20 صورة", a_clean: "بلا خدش", a_clean_d: "اهزم زعيمًا دون خسارة روح", a_rich: "غني", a_rich_d: "اربح 1000 عملة",
   play_online: 'أونلاين مع صديق', on_sub: 'معركة ثعابين مع صوت', on_desc: 'معركة ثعابين ضد صديق: كل واحد يغلق الأرض بلونه ويطلق النار ويقطع ذيل الآخر. تحدّثا أثناء اللعب.', on_host: 'افتح غرفة', on_join: 'لديك رمز؟ انضم', on_enter: 'الرمز', on_code: 'رمز الغرفة', on_invite: 'ادعُ عبر واتساب', on_copy: 'انسخ الرابط', on_copied: 'تم نسخ الرابط', on_inv_txt: 'تعال قاتل ثعباني:', on_waiting: 'بانتظار صديقك…', on_connecting: 'جارٍ الاتصال…', on_open: 'متصلان!', on_reconn: 'إعادة الاتصال…', on_start: 'ابدأ المعركة', on_wait_host: 'بانتظار أن يبدأ المضيف', on_leave: 'غادر الغرفة', on_back_room: 'العودة إلى الغرفة', seat_host: 'المضيف', seat_guest: 'الضيف', seat_empty: 'مقعد فارغ', on_notfound: 'الغرفة غير موجودة — تحقق من الرمز', on_full: 'الغرفة ممتلئة', on_err: 'فشل الاتصال — حاول مجددًا', v_ptt: 'اضغط وتحدّث', v_open: 'ميكروفون مفتوح', v_msg: 'رسالة صوتية', v_talking: '{n} يتحدث', v_tap: 'اضغط للاستماع', v_denied: 'لا يوجد إذن للميكروفون', v_privacy: 'الصوت ينتقل مباشرة بين الهاتفين ولا يُحفظ', on_ver: 'لدى صديقك إصدار آخر من اللعبة — يُفضّل التحديث', on_lost: 'انقطع الاتصال بصديقك… بانتظار', friend: 'صديق',
   am_venom: 'سم', am_fire: 'نار', am_ice: 'جليد', am_bolt: 'برق', t_para_hit: 'شللته!', t_para_me: 'أصبت بالشلل!', r10: 'الذخيرة: اجمع 🧪 السم أو 🔥 النار أو ❄️ الجليد أو ⚡ البرق — كل واحدة تعطي 3 طلقات، والزر الدائري يبصق في اتجاه حركتك. السم يشل الخصم والمخلوقات، والنار تحرق المخلوق وتخفيه لثوانٍ، والجليد يجمّد، والبرق يقطع ذيل الخصم. الحاسوب والزعماء يطلقون أيضًا — تحرّك!',
@@ -1455,7 +1602,7 @@ ar: {
 <script>/* SnakeNest app shell + renderer */
 (function () {
 'use strict';
-var APP_VERSION = '0.8.0';
+var APP_VERSION = '0.9.0';
 var E = window.SNE;
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'sk_data';
@@ -1468,7 +1615,7 @@ var store = {
   del: function (k) { try { localStorage.removeItem(k); } catch (e) {} delete mem[k]; }
 };
 function defData() {
-  return { v: 1, stars: {}, skin: 'green', set: { lang: 'he', theme: 'gold', sound: true, music: true, vib: true, ctrl: 'swipe', name: '' }, pics: {}, best: {}, coins: 0, up: {}, ach: {},
+  return { v: 1, stars: {}, skin: 'green', set: { lang: 'he', theme: 'gold', sound: true, music: true, vib: true, ctrl: 'swipe', name: '' }, pics: {}, best: {}, coins: 0, up: {}, ach: {}, wpn: {}, wsel: '',
     daily: { date: 0, done: false, best: 0, streak: 0, last: 0 }, duel: { 1: 0, 2: 0, 3: 0, 4: 0 }, duelSel: 2, stats: { games: 0, cuts: 0, caps: 0, bigCap: 0, maxCombo: 0, paras: 0, shots: 0, items: 0, bossW: {}, clean: 0, earned: 0 }, tut: false };
 }
 var D = defData();
@@ -1622,16 +1769,19 @@ var music = (function () {
     vol: function (v) { want = v; if (a) a.volume = v; }
   };
 })();
-function gameTrack(cfg, m) { return cfg.boss ? 'mus-boss' : (m.mode === 'duel' || m.mode === 'online') ? 'mus-duel' : 'mus-w' + Math.max(1, Math.min(6, cfg.world || 1)); }
+function gameTrack(cfg, m) { return cfg.boss ? (cfg.world >= 9 ? 'mus-final' : 'mus-boss') : (m.mode === 'duel' || m.mode === 'online') ? 'mus-duel' : 'mus-w' + Math.max(1, Math.min(9, cfg.world || 1)); }
 document.addEventListener('pointerdown', function first() { music.resume(); document.removeEventListener('pointerdown', first, true); }, true);
 document.addEventListener('visibilitychange', function () { if (document.hidden) music.stop(); else music.resume(); });
 
 /* ───── skins & assets ───── */
 function loadImg(src, cb) { var im = new Image(); im.onload = function () { im.ok = true; if (cb) cb(im); }; im.src = src; return im; }
 var IMG = { w: {}, items: { apple: loadImg('img/item-speed.webp'), gapple: loadImg('img/item-freeze.webp'), bomb: loadImg('img/item-bomb.webp'), egg: loadImg('img/item-life.webp'), venom: loadImg('img/ammo-venom.webp'), fire: loadImg('img/ammo-fire.webp'), ice: loadImg('img/ammo-ice.webp'), bolt: loadImg('img/ammo-bolt.webp') }, shots: {} };
-['venom', 'fire', 'ice', 'bolt', 'spit'].forEach(function (k) { IMG.shots[k] = loadImg('img/shot-' + k + '.webp'); });
+['venom', 'fire', 'ice', 'bolt', 'spit', 'missile', 'spin'].forEach(function (k) { IMG.shots[k] = loadImg('img/shot-' + k + '.webp'); });
+IMG.wp = {}; IMG.fx = {}; IMG.mine = [loadImg('img/mine-1.webp'), loadImg('img/mine-2.webp')];
+['missile', 'spin', 'shock', 'mine', 'mirror', 'slow'].forEach(function (k) { IMG.wp[k] = loadImg('img/wpn-' + k + '.webp'); });
+['shock-1', 'shock-2', 'shock-3', 'boom', 'mirror', 'slow', 'reflect'].forEach(function (k) { IMG.fx[k] = loadImg('img/fx-' + k + '.webp'); });
 function worldArt(w) {
-  w = Math.max(1, Math.min(6, w || 1));
+  w = Math.max(1, Math.min(9, w || 1));
   if (!IMG.w[w]) IMG.w[w] = { sea: loadImg('img/sea' + w + '.webp'), land: loadImg('img/land' + w + '.webp'), boss: loadImg('img/boss' + w + '.webp'), seat: loadImg('img/seat' + w + '.jpg'), pat: null, patCs: 0 };
   return IMG.w[w];
 }
@@ -1869,12 +2019,17 @@ function drawItem(x, V, it, t) {
   }
 }
 var AMMO_IC = { venom: '🧪', fire: '🔥', ice: '❄️', bolt: '⚡' };
-var SHOT_COL = { venom: ['#8dff5a', '#1f8a1f'], fire: ['#ffd04d', '#ff4a10'], ice: ['#e6fbff', '#5ec8ff'], bolt: ['#fff7a0', '#ffd000'], spit: ['#d6ff6b', '#6b8f00'] };
+var SHOT_COL = { venom: ['#8dff5a', '#1f8a1f'], fire: ['#ffd04d', '#ff4a10'], ice: ['#e6fbff', '#5ec8ff'], bolt: ['#fff7a0', '#ffd000'], spit: ['#d6ff6b', '#6b8f00'], missile: ['#ffd38a', '#ff5a1a'], spin: ['#ffe08a', '#ff8a00'], boom: ['#ffcf6b', '#ff5a1a'] };
 function drawShots(x, V, S, t) {
   var cs = V.cs;
   for (var i = 0; i < S.shots.length; i++) {
     var p = S.shots[i], px = p.x * cs, py = p.y * cs, c = SHOT_COL[p.type] || SHOT_COL.venom, sp = Math.hypot(p.vx, p.vy) || 1, ux = p.vx / sp, uy = p.vy / sp;
     var sim = IMG.shots[p.type];
+    if (p.type === 'spin') {
+      var ss = cs * 2.3; if (sim && sim.ok) { x.save(); x.translate(px, py); x.rotate(t * 14); x.drawImage(sim, -ss / 2, -ss / 2, ss, ss); x.restore(); }
+      else { x.fillStyle = '#ffa020'; x.beginPath(); x.arc(px, py, cs * .6, 0, 6.283); x.fill(); }
+      continue;
+    }
     if (sim && sim.ok) {
       var sw = cs * (p.type === 'spit' ? 1.9 : 1.5), sh = sw * 2;
       var gl = x.createRadialGradient(px, py, 0, px, py, sw); gl.addColorStop(0, c[1]); gl.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1892,6 +2047,52 @@ function drawShots(x, V, S, t) {
     x.strokeStyle = g; x.lineWidth = R0 * 1.6; x.lineCap = 'round'; x.beginPath(); x.moveTo(px, py); x.lineTo(px - ux * cs * 2.4, py - uy * cs * 2.4); x.stroke();
     var rg = x.createRadialGradient(px, py, 0, px, py, R0 * 1.4); rg.addColorStop(0, c[0]); rg.addColorStop(.6, c[1]); rg.addColorStop(1, 'rgba(0,0,0,0)');
     x.fillStyle = rg; x.beginPath(); x.arc(px, py, R0 * 1.4, 0, 6.283); x.fill();
+  }
+}
+function drawWeapons(x, V, S, t, dt) {
+  var cs = V.cs, i, j;
+  for (i = 0; i < S.mines.length; i++) {
+    var m = S.mines[i], mx = (m.x + .5) * cs, my = (m.y + .5) * cs, on = m.arm <= 0 && Math.floor(t * 4) % 2, im = IMG.mine[on ? 1 : 0], ms = cs * 2;
+    x.strokeStyle = m.owner === 1 ? 'rgba(255,225,77,.75)' : 'rgba(200,120,255,.75)'; x.lineWidth = Math.max(1, cs * .12);
+    x.beginPath(); x.arc(mx, my, ms * .55, 0, 6.283); x.stroke();
+    if (im.ok) x.drawImage(im, mx - ms / 2, my - ms / 2, ms, ms); else { x.fillStyle = on ? '#f33' : '#622'; x.beginPath(); x.arc(mx, my, cs * .6, 0, 6.283); x.fill(); }
+  }
+  for (i = 0; i < S.snakes.length; i++) {
+    var s = S.snakes[i]; if (s.dead > 0) continue;
+    var hx = (s.x + .5) * cs, hy = (s.y + .5) * cs;
+    if (s.shock > 0) {
+      var fr = IMG.fx['shock-' + (1 + Math.floor(t * 16) % 3)], zs = cs * 2, cells = s.trail.concat(s.hist.slice(0, 5));
+      x.globalAlpha = s.shock < .6 ? (Math.floor(t * 12) % 2 ? .9 : .3) : .95;
+      for (j = 0; j < cells.length; j++) { var c = cells[j], zx = (c % S.W + .5) * cs, zy = (((c / S.W) | 0) + .5) * cs; if (fr.ok) x.drawImage(fr, zx - zs / 2, zy - zs / 2, zs, zs); }
+      if (fr.ok) x.drawImage(fr, hx - zs * .8, hy - zs * .8, zs * 1.6, zs * 1.6);
+      else { x.strokeStyle = '#8cf'; x.lineWidth = cs * .2; x.beginPath(); x.arc(hx, hy, cs * 1.2, 0, 6.283); x.stroke(); }
+      x.globalAlpha = 1;
+    }
+    if (s.mirror > 0) {
+      var mi = IMG.fx.mirror, mz = cs * (3.8 + Math.sin(t * 6) * .15);
+      x.globalAlpha = s.mirror < .8 ? (Math.floor(t * 10) % 2 ? .85 : .35) : .9;
+      if (mi.ok) { x.save(); x.translate(hx, hy); x.rotate(t * .8); x.drawImage(mi, -mz / 2, -mz / 2, mz, mz); x.restore(); }
+      else { x.strokeStyle = '#cfe8ff'; x.lineWidth = cs * .25; x.beginPath(); x.arc(hx, hy, mz / 2, 0, 6.283); x.stroke(); }
+      x.globalAlpha = 1;
+    }
+  }
+  if (S.slow > 0) {
+    var si = IMG.fx.slow, sz = cs * 1.7;
+    x.globalAlpha = Math.min(1, S.slow * 2) * .9;
+    var mark = function (ox, oy) { if (!si.ok) return; x.save(); x.translate(ox * cs, (oy - 1.7) * cs); x.rotate(-t * 3); x.drawImage(si, -sz / 2, -sz / 2, sz, sz); x.restore(); };
+    for (i = 0; i < S.balls.length; i++) { var b = S.balls[i]; if (!(b.gone > 0)) mark(b.x, b.y - (b.boss ? 1.2 : 0)); }
+    for (i = 0; i < S.crabs.length; i++) if (!(S.crabs[i].gone > 0)) mark(S.crabs[i].x, S.crabs[i].y);
+    for (i = 0; i < S.snakes.length; i++) { var o = S.snakes[i]; if (o.id !== S.slowBy && o.dead <= 0) mark(o.x + .5, o.y + .5); }
+    x.globalAlpha = 1;
+  }
+  var bl = V.booms || (V.booms = []);
+  for (i = bl.length - 1; i >= 0; i--) {
+    var bm = bl[i]; bm.life -= dt; if (bm.life <= 0) { bl.splice(i, 1); continue; }
+    var f = bm.life / bm.max, bi = IMG.fx[bm.im], bz = bm.r * 2 * cs * (1 + (1 - f) * .7);
+    x.globalAlpha = Math.min(1, f * 1.6);
+    if (bi && bi.ok) x.drawImage(bi, bm.x * cs - bz / 2, bm.y * cs - bz / 2, bz, bz);
+    else { x.fillStyle = 'rgba(255,140,40,.6)'; x.beginPath(); x.arc(bm.x * cs, bm.y * cs, bz / 2, 0, 6.283); x.fill(); }
+    x.globalAlpha = 1;
   }
 }
 function drawStatus(x, V, S, s, t) {
@@ -1914,6 +2115,7 @@ function drawField(cv, V, S, sk, t, dt, game) {
   x.translate(V.ox + sx, V.oy + sy);
   drawSea(x, V, S, t);
   if (S.freeze > 0) { x.fillStyle = 'rgba(200,245,255,' + Math.min(.35, S.freeze * .2) + ')'; x.fillRect(0, 0, S.W * cs, S.H * cs); }
+  if (S.slow > 0) { x.fillStyle = 'rgba(150,80,230,' + Math.min(.2, S.slow * .12) + ')'; x.fillRect(0, 0, S.W * cs, S.H * cs); }
   x.drawImage(V.land, 0, 0, S.W * cs, S.H * cs);
   for (var f = V.flash.length - 1; f >= 0; f--) {
     var fl = V.flash[f], age = t - fl.t0; if (age > 0.6) { V.flash.splice(f, 1); continue; }
@@ -1926,6 +2128,7 @@ function drawField(cv, V, S, sk, t, dt, game) {
   for (i = 0; i < S.balls.length; i++) if (!(S.balls[i].gone > 0)) drawBall(x, V, S.balls[i], t, S);
   for (i = 0; i < S.snakes.length; i++) drawStatus(x, V, S, S.snakes[i], t);
   drawShots(x, V, S, t);
+  drawWeapons(x, V, S, t, dt);
   // death ghosts (X-eyes)
   for (i = V.ghosts.length - 1; i >= 0; i--) {
     var gh = V.ghosts[i]; gh.life -= dt; if (gh.life <= 0) { V.ghosts.splice(i, 1); continue; }
@@ -1988,6 +2191,14 @@ function handleFx(V, S, sk, ev, t, quiet) {
       burst(V, e.x + (e.what === 'ball' || e.what === 'boss' || e.what === 'crab' ? 0 : .5), e.y + (e.what === 'ball' || e.what === 'boss' || e.what === 'crab' ? 0 : .5), pc2[0], 18, 7);
       if (e.type === 'fire' && (e.what === 'ball' || e.what === 'crab')) { for (var q = 0; q < 16; q++) burst(V, e.x, e.y, q % 2 ? '#555' : '#ff7a1a', 1, 4); }
     }
+    else if (e.t === 'boom') {
+      var bl = V.booms || (V.booms = []); bl.push({ x: e.x, y: e.y, r: e.r * 1.1, life: .6, max: .6, im: 'boom' });
+      for (var bq = 0; bq < 30; bq++) burst(V, e.x, e.y, bq % 3 ? '#ff8a1a' : '#ffe14d', 1, 12);
+      if (!quiet) V.shake = Math.max(V.shake, 0.3);
+    }
+    else if (e.t === 'zap') { (V.booms || (V.booms = [])).push({ x: e.x + (e.victim ? .5 : 0), y: e.y + (e.victim ? .5 : 0), r: 1.3, life: .4, max: .4, im: 'shock-2' }); burst(V, e.x + .5, e.y + .5, '#9fe0ff', 16, 9); }
+    else if (e.t === 'reflect') { (V.booms || (V.booms = [])).push({ x: e.x, y: e.y, r: .9, life: .35, max: .35, im: 'reflect' }); }
+    else if (e.t === 'wpn' && e.type === 'slow') { burst(V, e.x + .5, e.y + .5, '#c58cff', 26, 9); }
     else if (e.t === 'item') {
       burst(V, e.x + .5, e.y + .5, e.type === 'apple' ? '#ff5050' : e.type === 'gapple' ? '#9dffb0' : e.type === 'bomb' ? '#ffcf4d' : '#9ad8ff', 22, 7);
       if (e.type === 'bomb') { V.shake = quiet ? 0 : 0.35; for (var r = 0; r < 40; r++) burst(V, e.x + .5, e.y + .5, r % 2 ? '#ff8a00' : '#ffe14d', 1, 14); }
@@ -2000,7 +2211,7 @@ var demo = (function () {
   var S, V = makeView(), on = false, raf, last, acc = 0, t = 0;
   function reset() {
     S = E.create(E.duelCfg(2, (Math.random() * 1e9) | 0));
-    S.cfg.time = 9999; S.snakes[0].lives = S.snakes[1].lives = 999; S.cfg.world = 1 + Math.floor(Math.random() * 6);
+    S.cfg.time = 9999; S.snakes[0].lives = S.snakes[1].lives = 999; S.cfg.world = 1 + Math.floor(Math.random() * 9);
     S.snakes[0].ctrl = E.makeBot(3, (Math.random() * 1e9) | 0); S.snakes[1].ctrl = E.makeBot(3, (Math.random() * 1e9) | 0);
     var un = unlockedPics(); var pick = un.length ? un[Math.floor(Math.random() * un.length)] : 'l01';
     V.pic = picImg(pick, function () { V.lver = -1; });
@@ -2023,6 +2234,7 @@ var demo = (function () {
 
 /* ───── game ───── */
 /* ───── shop + achievements ───── */
+var WPNS = [{ id: 'missile', cost: [450, 350, 600] }, { id: 'spin', cost: [250, 250, 450] }, { id: 'shock', cost: [350, 300, 500] }, { id: 'mine', cost: [200, 200, 400] }, { id: 'mirror', cost: [300, 250, 450] }, { id: 'slow', cost: [500, 400, 650] }];
 var UPG = [
   { id: 'speed', ic: '⚡', cost: [60, 150, 300] }, { id: 'ammo', ic: '🧪', cost: [80, 180, 350] }, { id: 'magnet', ic: '🧲', cost: [120, 300] },
   { id: 'dur', ic: '⏳', cost: [70, 160, 320] }, { id: 'life', ic: '❤️', cost: [150, 400] }, { id: 'shield', ic: '🛡️', cost: [250] }
@@ -2034,6 +2246,8 @@ var ACH = [
   { id: 'combo', ic: '🔥', n: 5, v: function () { return stat('maxCombo'); }, r: 60 },
   { id: 'boss1', ic: '🐍', n: 1, v: function () { return Object.keys(D.stats.bossW || {}).length; }, r: 80 },
   { id: 'boss6', ic: '👑', n: 6, v: function () { return Object.keys(D.stats.bossW || {}).length; }, r: 300 },
+  { id: 'boss9', ic: '😈', n: 9, v: function () { return Object.keys(D.stats.bossW || {}).length; }, r: 500 },
+  { id: 'arsenal', ic: '🚀', n: 6, v: function () { return Object.keys(D.wpn || {}).length; }, r: 200 },
   { id: 'world1', ic: '🏜️', n: 10, v: function () { var c = 0; for (var i = 1; i <= 10; i++) if (D.stars[i]) c++; return c; }, r: 80 },
   { id: 'st30', ic: '⭐', n: 30, v: function () { return totalStars(); }, r: 80 },
   { id: 'st120', ic: '🌟', n: 120, v: function () { return totalStars(); }, r: 250 },
@@ -2061,7 +2275,8 @@ var G = (function () {
   function remoteCtrl(S2, s) { if (rq.length) s.want = rq.shift(); if (rStop) { s.stop = true; rStop = false; } }
   function ctrl(S2, s) { if (q.length) { s.want = q.shift(); } if (stopReq) { s.stop = true; stopReq = false; } }
   function start(cfg, m) {
-    meta = m; if (!cfg.world) cfg.world = 1 + ((cfg.seed >>> 0) % 6);
+    meta = m; if (!cfg.world) cfg.world = 1 + ((cfg.seed >>> 0) % 9);
+    if (m.mode !== 'online') { var ws = D.wsel; cfg.wp = (ws && D.wpn && D.wpn[ws]) ? { id: ws, lv: D.wpn[ws] - 1 } : null; }
     if (m.mode !== 'online') cfg.up = { speed: D.up.speed || 0, ammo: D.up.ammo || 0, magnet: D.up.magnet || 0, dur: D.up.dur || 0, life: D.up.life || 0, shield: D.up.shield || 0 };
     S = E.create(cfg); S.snakes[0].ctrl = ctrl;
     role = m.mode === 'online' ? m.role : null; me = role === 'guest' ? 1 : 0; myId = me + 1;
@@ -2101,9 +2316,10 @@ var G = (function () {
   }
   function stopIn() { if (!S || paused) return; if (!started) return; if (role === 'guest') { Net.send({ k: 'stop' }); return; } stopReq = true; }
   function shootIn() { if (!S || paused || S.over || !started) return; var p = S.snakes[me]; if (!(p.ammoN > 0)) return; if (role === 'guest') { Net.send({ k: 'fire' }); return; } p.shootReq = true; }
+  function wpnIn() { if (!S || paused || S.over || !started) return; var p = S.snakes[me]; if (!p.wp || p.wpN <= 0 || p.wpCd > 0 || p.dead > 0) return; if (role === 'guest') { Net.send({ k: 'wpn' }); return; } p.wpReq = true; }
   function onNet(m) {
     if (!S) return;
-    if (role === 'host') { if (m.k === 'in') { if (rq.length >= 3) rq.shift(); rq.push(m.d); } else if (m.k === 'stop') rStop = true; else if (m.k === 'fire') S.snakes[1].shootReq = true; }
+    if (role === 'host') { if (m.k === 'in') { if (rq.length >= 3) rq.shift(); rq.push(m.d); } else if (m.k === 'stop') rStop = true; else if (m.k === 'fire') S.snakes[1].shootReq = true; else if (m.k === 'wpn') S.snakes[1].wpReq = true; }
     else if (role === 'guest' && m.k === 'snap') pending = m;
   }
   function frame(ts) {
@@ -2174,6 +2390,18 @@ var G = (function () {
       else if (e.t === 'lunge') { tone(140, 0.35, 'sawtooth', 0.07, 70); }
       else if (e.t === 'shoot') { if (e.id === myId) { tone(e.type === 'bolt' ? 1400 : e.type === 'ice' ? 1800 : e.type === 'fire' ? 300 : 700, 0.16, e.type === 'fire' ? 'sawtooth' : 'triangle', 0.08, e.type === 'fire' ? 120 : 200); vib(12); } else tone(500, 0.1, 'triangle', 0.04, 200); }
       else if (e.t === 'spit') tone(260, 0.25, 'sawtooth', 0.06, 90);
+      else if (e.t === 'wpn') {
+        if (e.id === myId) { st.wpn = (st.wpn || 0) + 1; toast(T('t_wpn_' + e.type)); vib(25); }
+        if (e.type === 'missile') tone(180, 0.5, 'sawtooth', 0.07, 900);
+        else if (e.type === 'spin') { tone(500, 0.35, 'square', 0.05, 1400); }
+        else if (e.type === 'shock') { noise(0.4, 0.15, 3000); tone(90, 0.4, 'square', 0.06, 160); }
+        else if (e.type === 'mine') tone(300, 0.12, 'square', 0.06, 200);
+        else if (e.type === 'mirror') tone(1200, 0.4, 'sine', 0.07, 2000);
+        else if (e.type === 'slow') tone(700, 0.8, 'sine', 0.08, 120);
+      }
+      else if (e.t === 'boom') { noise(0.6, 0.4, 500); tone(70, 0.5, 'sawtooth', 0.1, 35); vib(50); }
+      else if (e.t === 'zap') { noise(0.25, 0.18, 4000); tone(140, 0.2, 'square', 0.06, 220); if (e.victim === myId) { toast(T('t_zap_me')); vib([40, 30, 40]); } else if (e.id === myId) toast(T('t_zap')); }
+      else if (e.t === 'reflect') { tone(1600, 0.15, 'triangle', 0.06, 2400); if (e.id === myId) toast(T('t_reflect')); }
       else if (e.t === 'phit') {
         if (e.by === myId && e.what === 'snake') { toast(T('t_para_hit')); vib(30); tone(900, 0.2, 'square', 0.06, 1500); }
         else if (e.by === myId && e.what === 'tail') { toast(T('t_cut')); }
@@ -2195,6 +2423,12 @@ var G = (function () {
     if (r && cfg.duel) right += ' 💜' + Math.max(0, r.lives);
     var sb = $('shootBtn'), am = p.ammoN > 0 ? p.ammo : '';
     if (sb._k !== am + p.ammoN) { sb._k = am + p.ammoN; sb.classList.toggle('on', !!am); sb.className = 'shoot' + (am ? ' on am-' + am : ''); sb.innerHTML = am ? '<img src="img/ammo-' + am + '.webp" alt=""><b>' + p.ammoN + '</b>' : ''; var pf = $('padFire'); if (pf) { pf.innerHTML = am ? '<img src="img/ammo-' + am + '.webp" alt="" style="width:34px;height:34px">' : '🎯'; pf.disabled = !am; } }
+    var wb = $('wpnBtn'), act = p.shock > 0 || p.mirror > 0 || (S.slow > 0 && S.slowBy === p.id), wk = (p.wp || '') + p.wpN + (p.wpCd > 0 ? 'c' : '') + (act ? 'a' : '');
+    if (wb._k !== wk) {
+      wb._k = wk; wb.className = 'wpn' + (p.wp ? ' on' : '') + (p.wpN <= 0 ? ' empty' : '') + (p.wpCd > 0 ? ' cd' : '') + (act ? ' act' : '');
+      wb.innerHTML = p.wp ? '<img src="img/wpn-' + p.wp + '.webp" alt=""><b>' + p.wpN + '</b>' : '';
+      var pw = $('padWpn'); if (pw) { pw.innerHTML = p.wp ? '<img src="img/wpn-' + p.wp + '.webp" alt="" style="width:34px;height:34px">' : ''; pw.disabled = !p.wp || p.wpN <= 0; pw.style.visibility = p.wp ? '' : 'hidden'; }
+    }
     var key = label + mid + right + p.area + (r ? r.area : 0) + (S.boss ? S.boss.region : 0);
     if (key === lastHud) return; lastHud = key;
     $('gL').textContent = label; $('gM').innerHTML = '<bdi>' + esc(mid) + '</bdi>'; $('gR').textContent = right;
@@ -2259,7 +2493,7 @@ var G = (function () {
     html += '<div class="stat"><span>' + T('res_coins') + '</span><b><bdi>+' + earned + ' 🪙</bdi></b></div>';
     if (newPic) html += '<p style="color:var(--acc);font-weight:800;margin:12px 0 0">🖼️ ' + T('img_unlocked') + '</p>';
     html += '<div class="btns">';
-    var hasNext = meta.mode === 'level' && win && meta.n < 60;
+    var hasNext = meta.mode === 'level' && win && meta.n < 90;
     if (hasNext) html += '<button class="btn pri" id="rN">▶ ' + T('next') + '</button>';
     if (role === 'guest') html += '<p class="mut">' + T('on_wait_host') + '</p><button class="btn" id="rH">' + T('on_back_room') + '</button></div>';
     else html += '<button class="btn ' + (hasNext ? '' : 'pri') + '" id="rA">↻ ' + T('retry') + '</button><button class="btn" id="rH">' + (role ? T('on_back_room') : T('home')) + '</button></div>';
@@ -2284,7 +2518,7 @@ var G = (function () {
     function up(e) { if (pid !== e.pointerId) return; pid = null; if (!moved && Date.now() - t0 < 300) stopIn(); }
     st.addEventListener('pointerup', up); st.addEventListener('pointercancel', function () { pid = null; });
     document.querySelectorAll('#pad button').forEach(function (b) {
-      b.addEventListener('pointerdown', function (e) { e.preventDefault(); ac(); var d = b.getAttribute('data-d'); if (d === 's') stopIn(); else if (d === 'f') shootIn(); else input(+d); });
+      b.addEventListener('pointerdown', function (e) { e.preventDefault(); ac(); var d = b.getAttribute('data-d'); if (d === 's') stopIn(); else if (d === 'f') shootIn(); else if (d === 'w') wpnIn(); else input(+d); });
     });
     document.addEventListener('keydown', function (e) {
       if (cur() !== 'game' || modals.length) return;
@@ -2292,6 +2526,7 @@ var G = (function () {
       if (m[k] != null) { e.preventDefault(); input(m[k]); }
       else if (k === ' ') { e.preventDefault(); if (!started) return; stopIn(); }
       else if (k === 'f' || k === 'F' || k === 'Enter') { e.preventDefault(); shootIn(); }
+      else if (k === 'q' || k === 'Q' || k === 'e' || k === 'E' || k === 'Shift') { e.preventDefault(); wpnIn(); }
       else if (k === 'p' || k === 'P' || k === 'Escape') pause();
     });
     $('gPause').onclick = function () { pause(); };
@@ -2299,6 +2534,7 @@ var G = (function () {
     gt.addEventListener('pointerdown', function (e) { e.preventDefault(); if (Net.link) { Net.link.talk(true); gt.classList.add('dn'); } });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (k) { gt.addEventListener(k, function () { if (Net.link) Net.link.talk(false); gt.classList.remove('dn'); }); });
     var sb = $('shootBtn'); sb.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); ac(); shootIn(); });
+    var wb = $('wpnBtn'); wb.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); ac(); wpnIn(); });
     document.addEventListener('visibilitychange', function () { if (document.hidden && cur() === 'game' && S && !S.over && !paused && started && !role) pause(); });
   }
   return { start: start, onNet: onNet, get role() { return role; }, setupInput: setupInput, pauseMenu: function () { if (S && S.over) { quit(); return; } pause(); }, state: function () { return S; } };
@@ -2316,7 +2552,7 @@ var Net = {
       onStatus: function (st) {
         self.status = st;
         if (['notfound', 'full', 'error'].indexOf(st) >= 0) { self.lastFail = st; setTimeout(function () { if (self.status === st) { self.leave(); self.render(); } }, 0); }
-        else if (st === 'open') { self.lastFail = null; if (self.link && self.link.session && self.link.session.role === 'guest') self.send({ k: 'skin', s: D.skin }); }
+        else if (st === 'open') { self.lastFail = null; if (self.link && self.link.session && self.link.session.role === 'guest') self.send({ k: 'skin', s: D.skin, w: myWpn() }); }
         self.render();
       },
       onRoster: function (r) { self.roster = r; self.render(); },
@@ -2334,7 +2570,7 @@ var Net = {
   onMessage: function (m) {
     if (!m) return;
     if (m.k === 'start') { this.begin(m, 'guest'); return; }
-    if (m.k === 'skin') { this.guestSkin = m.s; return; }
+    if (m.k === 'skin') { this.guestSkin = m.s; this.guestWp = m.w || ''; return; }
     G.onNet(m);
   },
   isHost: function () { return !!(this.link && this.link.session && this.link.session.role === 'host'); },
@@ -2344,11 +2580,13 @@ var Net = {
   startGame: function () {
     if (!this.isHost()) return;
     var un = unlockedPics(), seed = (Math.random() * 1e9) | 0;
-    var m = { k: 'start', seed: seed, world: 1 + (seed % 6), pic: un.length ? un[seed % un.length] : 'l' + ((seed % 9) + 1 < 10 ? '0' : '') + ((seed % 9) + 1), skins: [D.skin, this.guestSkin || 'green'] };
+    var on = D.set.onWpn !== false;
+    var m = { k: 'start', seed: seed, world: 1 + (seed % 9), wps: on ? [myWpn(), this.guestWp || ''] : ['', ''], pic: un.length ? un[seed % un.length] : 'l' + ((seed % 9) + 1 < 10 ? '0' : '') + ((seed % 9) + 1), skins: [D.skin, this.guestSkin || 'green'] };
     this.send(m); this.begin(m, 'host');
   },
   begin: function (m, role) {
     var c = E.duelCfg(2, m.seed); c.world = m.world; c.rival = 1;
+    var w = m.wps || []; c.wp = w[0] ? { id: w[0], lv: 0 } : null; c.wp2 = w[1] ? { id: w[1], lv: 0 } : null;
     G.start(c, { mode: 'online', role: role, seed: m.seed, pic: m.pic, skins: m.skins });
   },
   render: function () { if (cur() === 'online') RENDER.online(); }
@@ -2370,6 +2608,7 @@ function renderOnline() {
     seats.forEach(function (p) { h += '<div class="seat"><span class="dot ' + (p.online ? 'on' : '') + '"></span><b>' + esc(p.name || (p.seat === 0 ? T('seat_host') : T('seat_guest'))) + '</b><span class="mut">' + (p.seat === 0 ? T('seat_host') : T('seat_guest')) + (p.voice ? ' 🎙' : '') + '</span></div>'; });
     if (seats.length < 2) h += '<div class="seat" style="opacity:.6"><span class="dot"></span>' + T('seat_empty') + '</div>';
     h += '<p class="mut" style="margin:8px 0 0">' + stText + '</p></div>';
+    if (isHost) h += '<div class="card sw" style="display:flex;align-items:center;justify-content:space-between"><span>🚀 ' + T('on_wpn') + '</span><button class="tg2 ' + (D.set.onWpn !== false ? 'on' : '') + '" id="nWpn" aria-label="weapons"></button></div>';
     if (isHost) h += '<button class="btn pri" id="nStart" ' + (st === 'open' && Net.roster.filter(function (p) { return p.online; }).length >= 2 ? '' : 'disabled') + '>⚔️ ' + T('on_start') + '</button>';
     else h += '<p class="mut" style="text-align:center">' + T('on_wait_host') + '</p>';
     h += '<div class="voice"><button id="vPtt">🎙 ' + T('v_ptt') + '</button><button id="vOpen" class="' + (L.openMic ? 'dn' : '') + '">🔓 ' + T('v_open') + '</button><button id="vRec">⏺ ' + T('v_msg') + '</button></div><p class="mut" id="talking" style="text-align:center;min-height:18px"></p><p class="mut" style="text-align:center;font-size:12px">' + T('v_privacy') + '</p>';
@@ -2382,6 +2621,7 @@ function renderOnline() {
   if (q('nWa')) q('nWa').onclick = function () { openUrl('https://wa.me/?text=' + encodeURIComponent('SnakeNest ⚔️🐍 ' + T('on_inv_txt') + '\n' + Net.link.inviteURL())); };
   if (q('nCp')) q('nCp').onclick = function () { try { navigator.clipboard.writeText(Net.link.inviteURL()); snack(T('on_copied')); } catch (e) { snack(Net.link.inviteURL(), 5000); } };
   if (q('nStart')) q('nStart').onclick = function () { ac(); Net.startGame(); };
+  if (q('nWpn')) q('nWpn').onclick = function () { D.set.onWpn = D.set.onWpn === false; save(); renderOnline(); };
   if (q('nLeave')) q('nLeave').onclick = function () { Net.leave(); renderOnline(); };
   var ptt = q('vPtt'), op = q('vOpen'), rec = q('vRec');
   if (ptt) { ptt.addEventListener('pointerdown', function (e) { e.preventDefault(); ptt.classList.add('dn'); L.talk(true); }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (k) { ptt.addEventListener(k, function () { ptt.classList.remove('dn'); L.talk(false); }); }); }
@@ -2389,12 +2629,13 @@ function renderOnline() {
   if (rec) { rec.addEventListener('pointerdown', function (e) { e.preventDefault(); rec.classList.add('dn'); L.recStart(20); }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (k) { rec.addEventListener(k, function () { rec.classList.remove('dn'); L.recStop(); }); }); }
 };
 function fmtT(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60); }
+function myWpn() { return D.wsel && D.wpn && D.wpn[D.wsel] ? D.wsel : ''; }
 function today() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
 function prevDay(n) { var d = new Date(Math.floor(n / 10000), Math.floor(n / 100) % 100 - 1, n % 100 - 1); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
 
 function rulesHTML() {
-  var ic = ['🏝️', '👆', '🎯', '🐡', '🦀', '✂️', '⭐', '🍎', '🐍', '🧪'];
-  var h = ''; for (var i = 1; i <= 10; i++) h += '<p><span class="ic">' + ic[i - 1] + '</span>' + esc(T('r' + i)) + '</p>';
+  var ic = ['🏝️', '👆', '🎯', '🐡', '🦀', '✂️', '⭐', '🍎', '🐍', '🧪', '🚀'];
+  var h = ''; for (var i = 1; i <= 11; i++) h += '<p><span class="ic">' + ic[i - 1] + '</span>' + esc(T('r' + i)) + '</p>';
   h += '<p><span class="ic">🖼️</span>' + esc(T('reveal_t')) + '</p>';
   return h;
 }
@@ -2419,7 +2660,7 @@ var RENDER = {
   levels: function () {
     var max = 0; for (var k in D.stars) if (D.stars[k] > 0) max = Math.max(max, +k);
     var open = max + 3, h = '';
-    for (var w = 1; w <= 6; w++) {
+    for (var w = 1; w <= 9; w++) {
       var bannerPic = D.pics[lvPic(w * 10)] ? lvPic(w * 10) : lvPic(w * 10 - 9), wl = (w - 1) * 10 + 1 > open;
       h += '<div class="world' + (wl ? ' wlock' : '') + '"><div class="wban" style="background-image:url(img/' + bannerPic + '.jpg)"><div><small>' + T('world_n', { n: w }) + '</small><b>' + T('w' + w) + '</b><span>' + T('w' + w + 'd') + '</span></div></div><div class="path">';
       var pts = [];
@@ -2427,7 +2668,7 @@ var RENDER = {
       h += '<svg class="pline" viewBox="0 0 100 ' + (pts[9][1] + 50) + '" preserveAspectRatio="none"><polyline points="' + pts.map(function (p) { return p[0] + ',' + p[1]; }).join(' ') + '"/></svg>';
       for (i = 0; i < 10; i++) {
         var n = (w - 1) * 10 + i + 1, st = D.stars[n] || 0, lock = n > open, boss = n % 10 === 0, rv = n % 10 === 5, pic = lvPic(n), done = !!D.pics[pic];
-        h += '<button class="node' + (lock ? ' lock' : '') + (boss ? ' boss' : '') + (done ? ' done' : '') + (n === Math.min(open, 60) && !st ? ' cur' : '') + '" data-lv="' + n + '" style="left:' + pts[i][0] + '%;top:' + pts[i][1] + 'px">';
+        h += '<button class="node' + (lock ? ' lock' : '') + (boss ? ' boss' : '') + (done ? ' done' : '') + (n === Math.min(open, 90) && !st ? ' cur' : '') + '" data-lv="' + n + '" style="left:' + pts[i][0] + '%;top:' + pts[i][1] + 'px">';
         h += '<span class="nb"' + (done ? ' style="background-image:url(img/' + pic + '.jpg)"' : '') + '>' + (lock ? '🔒' : boss ? '<i class="cob" style="background:url(img/boss' + w + '.webp) -128px 0/256px 64px;transform:scale(.9)"></i>' : '<bdi>' + n + '</bdi>') + '</span>';
         h += '<span class="st">' + (st ? '★★★'.slice(0, st) + '<em>' + '★★★'.slice(0, 3 - st) + '</em>' : rv ? '⚔️' : '') + '</span></button>';
       }
@@ -2444,6 +2685,15 @@ var RENDER = {
       h += '<div class="card upg"><div class="uic">' + u.ic + '</div><div class="ubody"><b>' + T('up_' + u.id) + '</b><span class="mut">' + T('up_' + u.id + '_d') + '</span><div class="udots">' + dots + '</div></div>' +
         (lv >= max ? '<span class="umax">' + T('maxed') + '</span>' : '<button class="btn sm ' + ((D.coins || 0) >= cost ? 'pri' : '') + '" data-buy="' + u.id + '">🪙 <bdi>' + cost + '</bdi></button>') + '</div>';
     });
+    h += '<h3 style="margin:18px 4px 4px">🚀 ' + T('sh_wpn') + '</h3><p class="mut" style="margin:0 2px 12px;line-height:1.5">' + T('sh_wpn_note') + '</p>';
+    WPNS.forEach(function (w) {
+      var lv = (D.wpn && D.wpn[w.id]) || 0, max = w.cost.length, cost = w.cost[lv], dots = '', eq = D.wsel === w.id && lv;
+      for (var i = 0; i < max; i++) dots += '<i class="' + (i < lv ? 'on' : '') + '"></i>';
+      var uses = E.WPN[w.id].n[Math.max(0, lv - 1)];
+      h += '<div class="card upg wcard' + (eq ? ' eq' : '') + '"><img class="wic" src="img/wpn-' + w.id + '.webp" alt=""><div class="ubody"><b>' + T('wp_' + w.id) + '</b><span class="mut">' + T('wp_' + w.id + '_d') + '</span><span class="mut" style="font-size:12px">' + T('wp_lv', { n: '<bdi>' + uses + '</bdi>' }) + '</span><div class="udots">' + dots + '</div></div><div class="wbtns">' +
+        (lv >= max ? '<span class="umax">' + T('maxed') + '</span>' : '<button class="btn sm ' + ((D.coins || 0) >= cost ? 'pri' : '') + '" data-wbuy="' + w.id + '">' + (lv ? '⬆' : '') + '🪙 <bdi>' + cost + '</bdi></button>') +
+        (lv ? '<button class="btn sm ' + (eq ? 'pri' : '') + '" data-weq="' + w.id + '">' + (eq ? '✓ ' + T('equipped') : T('equip')) + '</button>' : '') + '</div></div>';
+    });
     $('shopBody').innerHTML = h;
   },
   ach: function () {
@@ -2457,7 +2707,7 @@ var RENDER = {
   },
   gallery: function () {
     var h = '', got = 0, all = [];
-    for (var n = 1; n <= 60; n++) all.push([lvPic(n), n]);
+    for (var n = 1; n <= 90; n++) all.push([lvPic(n), n]);
     for (var k = 1; k <= 20; k++) all.push(['x' + (k < 10 ? '0' : '') + k, 0]);
     all.forEach(function (a) {
       var on = !!D.pics[a[0]]; if (on) got++;
@@ -2516,6 +2766,12 @@ document.addEventListener('click', function (e) {
   if (bu) { var u = UPG.filter(function (x) { return x.id === bu.getAttribute('data-buy'); })[0], lv = D.up[u.id] || 0, cost = u.cost[lv];
     if (cost == null) return; if ((D.coins || 0) < cost) { snack(T('no_coins')); return; }
     D.coins -= cost; D.up[u.id] = lv + 1; save(); sfx.life(); snack(u.ic + ' ' + T('bought')); RENDER.shop(); return; }
+  var wbu = e.target.closest('[data-wbuy]');
+  if (wbu) { var wid = wbu.getAttribute('data-wbuy'), ww = WPNS.filter(function (x) { return x.id === wid; })[0], wl = (D.wpn && D.wpn[wid]) || 0, wc = ww.cost[wl];
+    if (wc == null) return; if ((D.coins || 0) < wc) { snack(T('no_coins')); return; }
+    D.coins -= wc; D.wpn = D.wpn || {}; D.wpn[wid] = wl + 1; if (!wl) D.wsel = wid; checkAch(); save(); sfx.life(); snack('🚀 ' + T('wp_' + wid) + ' · ' + T('bought')); RENDER.shop(); return; }
+  var weq = e.target.closest('[data-weq]');
+  if (weq) { var wq = weq.getAttribute('data-weq'); D.wsel = D.wsel === wq ? '' : wq; save(); sfx.click(); RENDER.shop(); return; }
   var gi = e.target.closest('[data-pic]');
   if (gi) { if (gi.classList.contains('lock')) { snack(gi.querySelector('small').textContent); return; }
     var pn = +gi.getAttribute('data-pn'), m = modal('<img src="img/' + gi.getAttribute('data-pic') + '.jpg" style="width:100%;border-radius:12px;display:block" alt=""><p style="margin:10px 0 0;font-weight:700">' + (pn ? T('level', { n: pn }) + ' · ' + T('w' + Math.ceil(pn / 10)) : T('play_daily')) + '</p><div class="btns"><button class="btn pri" id="gOk">' + T('ok') + '</button></div>', { cls: 'gview' });
@@ -2571,7 +2827,7 @@ function renderAbout() {
   var h = '<div class="card" style="text-align:center"><img class="abicon" src="icon-192.png" alt=""><h2 style="margin:0">SnakeNest</h2><div class="mut">v<bdi>' + APP_VERSION + '</bdi></div></div>';
   h += '<div class="card"><div class="kv"><span>' + T('ab_version') + '</span><bdi>' + APP_VERSION + '</bdi></div><div class="kv"><span>' + T('ab_dev') + '</span><span>Barak Aflalo</span></div><div class="kv"><span>' + T('ab_platform') + '</span><span>PWA · HTML5</span></div><div class="kv"><span>' + T('ab_storage') + '</span><span>' + T('ab_storage_v') + '</span></div><div class="kv"><span>' + T('ab_license') + '</span><span>© AppNest 2026</span></div></div>';
   h += '<div style="display:grid;gap:9px"><button class="btn" id="aStore">🏪 ' + T('ab_store') + '</button><button class="btn" id="aShare">📤 ' + T('ab_share') + '</button><button class="btn" id="aFb">✉️ ' + T('ab_feedback') + '</button><button class="btn" id="aGuide">📖 ' + T('ab_guide') + '</button><button class="btn" id="aPriv">🔒 ' + T('ab_privacy') + '</button></div>';
-  h += '<div class="card" style="margin-top:12px"><b>' + T('ab_credits') + '</b><div class="mut" dir="ltr" style="text-align:left;line-height:1.6;margin-top:6px;font-size:13px">Game design, code, creatures &amp; world: Barak Aflalo · AppNest<br>World &amp; daily paintings, snakes, creatures, bosses, bonuses, sea materials, map, home screen &amp; icon: created for SnakeNest with AI image generation (Barak Aflalo)<br>Music: “Ancient Power of Serpents” by Kevin MacLeod (menu) · “Desert Zone” · “Revenge of the Jungle” · “Evil Temple” by HaelDB · “Mystical Outpost” by Urban Brometheus · “Frozen Jungle” by Komiku · “King Crumble” · “Epic Boss Battle” by Juhani Junkala · “Battle RPG Theme” by CleytonRX — via OpenGameArt.org (CC0)<br>Online play: NestLink (AppNest) over PeerJS (MIT)</div></div>';
+  h += '<div class="card" style="margin-top:12px"><b>' + T('ab_credits') + '</b><div class="mut" dir="ltr" style="text-align:left;line-height:1.6;margin-top:6px;font-size:13px">Game design, code, creatures &amp; world: Barak Aflalo · AppNest<br>World &amp; daily paintings, snakes, creatures, bosses, bonuses, sea materials, map, home screen &amp; icon: created for SnakeNest with AI image generation (Barak Aflalo)<br>Music: “Ancient Power of Serpents” by Kevin MacLeod (menu) · “Desert Zone” · “Revenge of the Jungle” · “Evil Temple” by HaelDB · “Mystical Outpost” by Urban Brometheus · “Frozen Jungle” by Komiku · “King Crumble” · “Epic Boss Battle” by Juhani Junkala · “Battle RPG Theme” by CleytonRX · “Spacetime”, “Great Mission”, “Doomed”, “Waking the Devil” by Alexander Ehlers — via OpenGameArt.org<br>Online play: NestLink (AppNest) over PeerJS (MIT)</div></div>';
   h += '<p class="mut" style="text-align:center;margin-top:16px;line-height:1.5">' + T('ab_disc') + '</p>';
   $('abBody').innerHTML = h;
   $('aStore').onclick = function () { openUrl('https://appnest-store.pages.dev/'); };
