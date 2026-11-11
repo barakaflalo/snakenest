@@ -134,7 +134,7 @@ body.pad-on .pad{display:grid}
 /* world map */
 .body.map{background:radial-gradient(ellipse at 50% 0,#3b2a17,#1a120a 70%);padding:12px}
 .world{margin-bottom:22px}
-.wban{border-radius:18px;border:1px solid var(--acc);min-height:120px;background:#2a1d10 center/cover;position:relative;overflow:hidden;display:flex;align-items:flex-end}
+.wban{border-radius:18px;border:1px solid var(--acc);min-height:150px;background:#2a1d10 center/cover;position:relative;overflow:hidden;display:flex;align-items:flex-end}
 .wban>div{width:100%;padding:14px;background:linear-gradient(0deg,rgba(0,0,0,.85),rgba(0,0,0,0));color:#fff}
 .wban small{display:block;color:var(--acc2);font-weight:700;letter-spacing:.5px}
 .wban b{display:block;font-size:24px}
@@ -160,6 +160,10 @@ body.pad-on .pad{display:grid}
 .gi.lock span{font-size:34px;font-weight:900;color:var(--mut)}
 .gi.lock small{font-size:11px;color:var(--mut);padding:0 4px;text-align:center}
 .md.gview{padding:10px}
+
+#pad{direction:ltr}
+.world.wlock .wban{filter:grayscale(.7) brightness(.55)}
+.wban{background-position:center 30%}
 </style>
 </head>
 <body>
@@ -233,25 +237,22 @@ function rng(seed) {
 
 /* Level table: n = 1..30 */
 function levelCfg(n) {
-  var tier = n <= 10 ? 0 : n <= 20 ? 1 : 2;
-  var rival = (n % 10 === 5), boss = (n % 10 === 0);
-  if (boss) return {
-    W: 30, H: 56, seed: 1000 + n * 7919, balls: 1 + tier, ballSpeed: 4.6 + n * 0.06, big: 0,
-    crabs: tier, crabSpeed: 2.8 + n * 0.03, target: 0.95, lives: 3, rival: 0, time: 0,
-    boss: 1 + tier, bossTrap: 0.10, items: true, world: tier + 1
-  };
-  return {
-    W: 30, H: 56, seed: 1000 + n * 7919,
-    balls: Math.min(6, 1 + Math.floor(n / 5)),
-    ballSpeed: 4.6 + n * 0.08,
-    big: n >= 14 ? 1 : 0,
-    crabs: n >= 7 ? (n >= 19 ? 2 : 1) : 0,
-    crabSpeed: 2.8 + n * 0.03,
-    target: [0.70, 0.72, 0.75][tier],
-    lives: 3,
-    rival: rival ? (n <= 10 ? 1 : n <= 20 ? 2 : 3) : 0,
-    time: 0, items: true, world: tier + 1
-  };
+  var w = Math.ceil(n / 10), k = (n - 1) % 10 + 1, base = { W: 30, H: 56, seed: 1000 + n * 7919, lives: 3, time: 0, items: true, world: w };
+  var hard = Math.min(w, 4); // worlds 4–6 keep the world-4 base, but get their own creatures
+  if (k === 10) return Object.assign(base, {
+    balls: Math.min(3, Math.floor((hard + 1) / 2)), ballSpeed: 4.4 + hard * 0.25, big: 0,
+    crabs: hard >= 2 ? 1 : 0, crabSpeed: 2.8 + hard * 0.1, target: 0.95, rival: 0,
+    boss: Math.min(3, Math.ceil(hard / 1.5)), bossTrap: 0.10
+  });
+  return Object.assign(base, {
+    balls: Math.min(6, 1 + Math.floor(k / 4) + Math.floor(hard / 2)),
+    ballSpeed: 4.5 + k * 0.08 + hard * 0.22,
+    big: (hard >= 2 && k >= 6) ? 1 : 0,
+    crabs: (k >= 4 ? 1 : 0) + (hard >= 3 && k >= 8 ? 1 : 0),
+    crabSpeed: 2.8 + k * 0.03 + hard * 0.1,
+    target: [0, 0.70, 0.72, 0.74, 0.75][hard],
+    rival: k === 5 ? Math.min(3, Math.ceil(hard / 1.4)) : 0
+  });
 }
 function duelCfg(lvl, seed) {
   return { W: 30, H: 56, seed: seed, balls: 2 + (lvl >= 3 ? 1 : 0), ballSpeed: 5.6 + lvl * 0.3, big: 0,
@@ -259,7 +260,7 @@ function duelCfg(lvl, seed) {
 }
 function dailyCfg(dateNum) {
   var r = rng(dateNum * 2654435761);
-  var n = 8 + Math.floor(r() * 14); if (n % 10 === 0) n++;
+  var n = 8 + Math.floor(r() * 30); if (n % 10 === 0) n++;
   var c = levelCfg(n);
   c.seed = dateNum; c.rival = r() < 0.4 ? 2 : 0; c.daily = true;
   return c;
@@ -746,10 +747,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API; else 
 </script>
 <script>var LANG = {
 he: {
-  w1: 'נווה המדבר', w2: 'הג׳ונגל הפראי', w3: 'ממלכת הרוחות', w1d: 'שווקים, דיונות וארמונות חול', w2d: 'נמרים, ציידים ושבילים בין העצים', w3d: 'מקדשים, קסמים וכשפים עתיקים', world_n: 'עולם {n}',
+  w4: 'יער הקסמים', w5: 'ממלכת הקרח', w6: 'הר הגעש', w4d: 'פטריות זוהרות, מכשפות וצבאים עתיקים', w5d: 'ארמונות קרח, דובים וזוהר צפוני', w6d: 'נהרות לבה, דרקונים ונפחי אש', w1: 'נווה המדבר', w2: 'הג׳ונגל הפראי', w3: 'ממלכת הרוחות', w1d: 'שווקים, דיונות וארמונות חול', w2d: 'נמרים, ציידים ושבילים בין העצים', w3d: 'מקדשים, קסמים וכשפים עתיקים', world_n: 'עולם {n}',
   gallery: 'גלריה', gal_lv: 'נפתחת בשלב {n}', gal_daily: 'נפתחת באתגר יומי', gal_count: '{a} / {b} תמונות', img_unlocked: 'תמונה חדשה נפתחה בגלריה!', score: 'ניקוד', new_record: 'שיא חדש!',
   it_apple: 'מהירות!', it_gapple: 'היצורים קפאו!', it_bomb: 'בום! היצורים המומים', s_music: 'מוזיקה', ab_credits: 'קרדיטים', boss_lv: 'בוס: לכוד את הקוברה', boss_hint: 'סגור על הקוברה עד שיישאר לה רק 10% מהים',
-  r8: 'בונוסים צפים בים: 🍎 מהירות · 🍏 מקפיא את היצורים · 💣 מדהים את היצורים ומעיף את הסרטנים · 🥚 חיים נוספים.', r9: 'בסוף כל עולם מחכה קוברה ענקית. סגור עליה שטח עד שיישאר לה רק 10% מהים — והיזהר כשהיא מסתערת על הזנב שלך.', reveal_t: 'כל שטח שאתה סוגר חושף חלק מתמונה נסתרת. סיים את השלב — והתמונה כולה נפתחת לגלריה.',
+  r8: 'בונוסים צפים בים: 🍎 מהירות · 🍏 מקפיא את היצורים · 💣 מדהים את היצורים ומעיף את הסרטנים · 🥚 חיים נוספים.', r9: 'בסוף כל עולם מחכה נחש-בוס ענק. סגור עליו שטח עד שיישאר לו רק 10% מהים — והיזהר כשהוא מסתער על הזנב שלך.',
   dir: 'rtl', name: 'עברית',
   tagline: 'סוגרים שטחים · שומרים על הזנב',
   play_levels: 'שלבים', play_duel: 'נגד המחשב', play_daily: 'אתגר יומי', skins: 'הנחשים שלי', howto: 'איך משחקים', settings: 'הגדרות', about: 'אודות', theme: 'עיצוב',
@@ -790,10 +791,10 @@ he: {
   daily_res: 'אתגר יומי', new_skin: 'נחש חדש נפתח: {s}!', time_left: 'זמן', lives: 'חיים'
 },
 en: {
-  w1: 'Desert Oasis', w2: 'Wild Jungle', w3: 'Spirit Kingdom', w1d: 'Markets, dunes and sand palaces', w2d: 'Leopards, hunters and forest trails', w3d: 'Temples, magic and ancient spells', world_n: 'World {n}',
+  w4: 'Enchanted Forest', w5: 'Frost Kingdom', w6: 'Volcano', w4d: 'Glowing mushrooms, witches and ancient stags', w5d: 'Ice palaces, bears and northern lights', w6d: 'Lava rivers, dragons and fire smiths', w1: 'Desert Oasis', w2: 'Wild Jungle', w3: 'Spirit Kingdom', w1d: 'Markets, dunes and sand palaces', w2d: 'Leopards, hunters and forest trails', w3d: 'Temples, magic and ancient spells', world_n: 'World {n}',
   gallery: 'Gallery', gal_lv: 'Unlocks at level {n}', gal_daily: 'Unlocks in a daily challenge', gal_count: '{a} / {b} pictures', img_unlocked: 'New picture unlocked in the gallery!', score: 'Score', new_record: 'New record!',
   it_apple: 'Speed!', it_gapple: 'Creatures frozen!', it_bomb: 'Boom! Creatures stunned', s_music: 'Music', ab_credits: 'Credits', boss_lv: 'Boss: trap the cobra', boss_hint: 'Close in on the cobra until it has only 10% of the sea',
-  r8: 'Bonuses float in the sea: 🍎 speed · 🍏 freezes creatures · 💣 stuns creatures and blasts crabs away · 🥚 extra life.', r9: 'A giant cobra waits at the end of each world. Close land around it until it has only 10% of the sea — and beware when it lunges at your tail.', reveal_t: 'Every area you close reveals part of a hidden picture. Finish the level and the whole picture goes to your gallery.',
+  r8: 'Bonuses float in the sea: 🍎 speed · 🍏 freezes creatures · 💣 stuns creatures and blasts crabs away · 🥚 extra life.', r9: 'A giant boss serpent waits at the end of each world. Close land around it until it has only 10% of the sea — and beware when it lunges at your tail.',
   dir: 'ltr', name: 'English',
   tagline: 'Close areas · guard your tail',
   play_levels: 'Levels', play_duel: 'Vs Computer', play_daily: 'Daily challenge', skins: 'My snakes', howto: 'How to play', settings: 'Settings', about: 'About', theme: 'Theme',
@@ -834,10 +835,10 @@ en: {
   daily_res: 'Daily challenge', new_skin: 'New snake unlocked: {s}!', time_left: 'Time', lives: 'Lives'
 },
 ru: {
-  w1: 'Оазис в пустыне', w2: 'Дикие джунгли', w3: 'Царство духов', w1d: 'Рынки, дюны и песчаные дворцы', w2d: 'Леопарды, охотники и лесные тропы', w3d: 'Храмы, магия и древние чары', world_n: 'Мир {n}',
+  w4: 'Зачарованный лес', w5: 'Ледяное царство', w6: 'Вулкан', w4d: 'Светящиеся грибы, ведьмы и древние олени', w5d: 'Ледяные дворцы, медведи и северное сияние', w6d: 'Реки лавы, драконы и огненные кузнецы', w1: 'Оазис в пустыне', w2: 'Дикие джунгли', w3: 'Царство духов', w1d: 'Рынки, дюны и песчаные дворцы', w2d: 'Леопарды, охотники и лесные тропы', w3d: 'Храмы, магия и древние чары', world_n: 'Мир {n}',
   gallery: 'Галерея', gal_lv: 'Откроется на уровне {n}', gal_daily: 'Откроется в задании дня', gal_count: '{a} / {b} картин', img_unlocked: 'В галерее новая картина!', score: 'Очки', new_record: 'Новый рекорд!',
   it_apple: 'Скорость!', it_gapple: 'Существа заморожены!', it_bomb: 'Бум! Существа оглушены', s_music: 'Музыка', ab_credits: 'Авторы', boss_lv: 'Босс: поймай кобру', boss_hint: 'Окружай кобру, пока у неё не останется 10% моря',
-  r8: 'В море плавают бонусы: 🍎 скорость · 🍏 замораживает существ · 💣 оглушает существ и прогоняет крабов · 🥚 лишняя жизнь.', r9: 'В конце каждого мира ждёт гигантская кобра. Захватывай землю вокруг неё, пока у неё не останется 10% моря, и берегись её бросков на твой хвост.', reveal_t: 'Каждый захваченный участок открывает часть скрытой картины. Пройди уровень — и картина попадёт в галерею.',
+  r8: 'В море плавают бонусы: 🍎 скорость · 🍏 замораживает существ · 💣 оглушает существ и прогоняет крабов · 🥚 лишняя жизнь.', r9: 'В конце каждого мира ждёт гигантский змей-босс. Захватывай землю вокруг него, пока у него не останется 10% моря, и берегись его бросков на твой хвост.',
   dir: 'ltr', name: 'Русский',
   tagline: 'Захватывай землю · береги хвост',
   play_levels: 'Уровни', play_duel: 'Против компьютера', play_daily: 'Задание дня', skins: 'Мои змеи', howto: 'Как играть', settings: 'Настройки', about: 'Об игре', theme: 'Тема',
@@ -878,10 +879,10 @@ ru: {
   daily_res: 'Задание дня', new_skin: 'Новая змея: {s}!', time_left: 'Время', lives: 'Жизни'
 },
 es: {
-  w1: 'Oasis del desierto', w2: 'Selva salvaje', w3: 'Reino de los espíritus', w1d: 'Mercados, dunas y palacios de arena', w2d: 'Leopardos, cazadores y senderos', w3d: 'Templos, magia y hechizos antiguos', world_n: 'Mundo {n}',
+  w4: 'Bosque encantado', w5: 'Reino helado', w6: 'Volcán', w4d: 'Hongos brillantes, brujas y ciervos antiguos', w5d: 'Palacios de hielo, osos y auroras', w6d: 'Ríos de lava, dragones y herreros de fuego', w1: 'Oasis del desierto', w2: 'Selva salvaje', w3: 'Reino de los espíritus', w1d: 'Mercados, dunas y palacios de arena', w2d: 'Leopardos, cazadores y senderos', w3d: 'Templos, magia y hechizos antiguos', world_n: 'Mundo {n}',
   gallery: 'Galería', gal_lv: 'Se abre en el nivel {n}', gal_daily: 'Se abre en un reto diario', gal_count: '{a} / {b} imágenes', img_unlocked: '¡Nueva imagen en la galería!', score: 'Puntos', new_record: '¡Nuevo récord!',
   it_apple: '¡Velocidad!', it_gapple: '¡Criaturas congeladas!', it_bomb: '¡Bum! Criaturas aturdidas', s_music: 'Música', ab_credits: 'Créditos', boss_lv: 'Jefe: atrapa a la cobra', boss_hint: 'Encierra a la cobra hasta que solo le quede el 10% del mar',
-  r8: 'Hay bonos flotando en el mar: 🍎 velocidad · 🍏 congela a las criaturas · 💣 aturde a las criaturas y espanta a los cangrejos · 🥚 vida extra.', r9: 'Al final de cada mundo espera una cobra gigante. Cierra tierra a su alrededor hasta que solo le quede el 10% del mar, y cuidado cuando se lance contra tu cola.', reveal_t: 'Cada zona que cierras revela parte de una imagen oculta. Termina el nivel y la imagen entera pasa a tu galería.',
+  r8: 'Hay bonos flotando en el mar: 🍎 velocidad · 🍏 congela a las criaturas · 💣 aturde a las criaturas y espanta a los cangrejos · 🥚 vida extra.', r9: 'Al final de cada mundo espera una serpiente jefe gigante. Cierra tierra a su alrededor hasta que solo le quede el 10% del mar, y cuidado cuando se lance contra tu cola.',
   dir: 'ltr', name: 'Español',
   tagline: 'Cierra zonas · cuida tu cola',
   play_levels: 'Niveles', play_duel: 'Contra la máquina', play_daily: 'Reto diario', skins: 'Mis serpientes', howto: 'Cómo jugar', settings: 'Ajustes', about: 'Acerca de', theme: 'Tema',
@@ -922,10 +923,10 @@ es: {
   daily_res: 'Reto diario', new_skin: 'Nueva serpiente: {s}!', time_left: 'Tiempo', lives: 'Vidas'
 },
 ar: {
-  w1: 'واحة الصحراء', w2: 'الغابة البرية', w3: 'مملكة الأرواح', w1d: 'أسواق وكثبان وقصور رملية', w2d: 'نمور وصيادون ودروب الغابة', w3d: 'معابد وسحر وتعاويذ قديمة', world_n: 'العالم {n}',
+  w4: 'الغابة المسحورة', w5: 'مملكة الجليد', w6: 'البركان', w4d: 'فطر متوهج وساحرات وأيائل قديمة', w5d: 'قصور جليدية ودببة وشفق قطبي', w6d: 'أنهار حمم وتنانين وحدادو النار', w1: 'واحة الصحراء', w2: 'الغابة البرية', w3: 'مملكة الأرواح', w1d: 'أسواق وكثبان وقصور رملية', w2d: 'نمور وصيادون ودروب الغابة', w3d: 'معابد وسحر وتعاويذ قديمة', world_n: 'العالم {n}',
   gallery: 'المعرض', gal_lv: 'تُفتح في المرحلة {n}', gal_daily: 'تُفتح في تحدي اليوم', gal_count: '{a} / {b} صور', img_unlocked: 'صورة جديدة في المعرض!', score: 'النقاط', new_record: 'رقم قياسي جديد!',
   it_apple: 'سرعة!', it_gapple: 'تجمدت المخلوقات!', it_bomb: 'بوم! المخلوقات مذهولة', s_music: 'الموسيقى', ab_credits: 'الاعتمادات', boss_lv: 'الزعيم: احبس الكوبرا', boss_hint: 'أطبق على الكوبرا حتى يبقى لها 10% فقط من البحر',
-  r8: 'مكافآت تطفو في البحر: 🍎 سرعة · 🍏 تجميد المخلوقات · 💣 تذهل المخلوقات وتطرد السرطانات · 🥚 روح إضافية.', r9: 'في نهاية كل عالم تنتظر كوبرا عملاقة. أغلق الأرض حولها حتى يبقى لها 10% فقط من البحر، واحذر عندما تنقض على ذيلك.', reveal_t: 'كل منطقة تغلقها تكشف جزءًا من صورة مخفية. أنهِ المرحلة فتنتقل الصورة كاملة إلى معرضك.',
+  r8: 'مكافآت تطفو في البحر: 🍎 سرعة · 🍏 تجميد المخلوقات · 💣 تذهل المخلوقات وتطرد السرطانات · 🥚 روح إضافية.', r9: 'في نهاية كل عالم ينتظر ثعبان زعيم عملاق. أغلق الأرض حوله حتى يبقى له 10% فقط من البحر، واحذر عندما ينقض على ذيلك.',
   dir: 'rtl', name: 'العربية',
   tagline: 'أغلق المناطق · احمِ ذيلك',
   play_levels: 'المراحل', play_duel: 'ضد الحاسوب', play_daily: 'تحدي اليوم', skins: 'ثعابيني', howto: 'طريقة اللعب', settings: 'الإعدادات', about: 'حول', theme: 'المظهر',
@@ -970,7 +971,7 @@ ar: {
 <script>/* SnakeNest app shell + renderer */
 (function () {
 'use strict';
-var APP_VERSION = '0.2.0';
+var APP_VERSION = '0.3.0';
 var E = window.SNE;
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'sk_data';
@@ -1141,7 +1142,12 @@ document.addEventListener('visibilitychange', function () { if (document.hidden)
 
 /* ───── skins & assets ───── */
 function loadImg(src, cb) { var im = new Image(); im.onload = function () { im.ok = true; if (cb) cb(im); }; im.src = src; return im; }
-var IMG = { sp: loadImg('img/sprites.png', function () { SKC = {}; }), cobra: loadImg('img/cobra_blue.png'), cobraR: loadImg('img/cobra_red.png') };
+var IMG = { sp: loadImg('img/sprites.png', function () { SKC = {}; }), cobra: loadImg('img/cobra_blue.png'), cobraR: loadImg('img/cobra_red.png'), w: {} };
+function worldArt(w) {
+  w = Math.max(1, Math.min(6, w || 1));
+  if (!IMG.w[w]) IMG.w[w] = { sea: loadImg('img/sea' + w + '.webp'), land: loadImg('img/land' + w + '.webp'), boss: w >= 4 ? loadImg('img/boss' + w + '.webp') : null };
+  return IMG.w[w];
+}
 var SKINS = [
   { id: 'green', need: 0, f: '', edge: '#7dff9a' },
   { id: 'coral', need: 3, f: 'hue-rotate(-115deg) saturate(1.2)', edge: '#ff9a8a' },
@@ -1299,6 +1305,15 @@ function drawSnake(x, V, S, s, sk, t) {
 function drawBall(x, V, b, t, S) {
   var cs = V.cs, bx = b.x * cs, by = b.y * cs, R = b.r * cs * 1.35, frozen = S.freeze > 0 || b.stun > 0;
   if (b.boss) { drawBoss(x, V, b, t, S); return; }
+  var art = worldArt(S.cfg.world);
+  if (art.sea.ok) {
+    var sz = R * (b.big ? 3.0 : 4.6), wob = Math.sin(b.ph * 1.3) * 0.12, tilt = Math.max(-0.35, Math.min(0.35, b.vx * 0.04));
+    x.save(); x.translate(bx, by); x.rotate(tilt + wob); if (b.vx < 0 && !b.big) x.scale(-1, 1);
+    x.fillStyle = 'rgba(0,0,0,.25)'; x.beginPath(); x.ellipse(0, sz * .32, sz * .3, sz * .1, 0, 0, 6.283); x.fill();
+    x.drawImage(art.sea, -sz / 2, -sz / 2, sz, sz); x.restore();
+    if (frozen) iceOver(x, bx, by, R * 1.3, t, b.stun > 0 && !(S.freeze > 0));
+    return;
+  }
   if (b.big) {
     x.strokeStyle = 'rgba(232,170,255,.8)'; x.lineWidth = Math.max(1, cs * .12);
     for (var k = -2; k <= 2; k++) { x.beginPath(); x.moveTo(bx + k * R * .3, by + R * .3); x.quadraticCurveTo(bx + k * R * .3 + Math.sin(t * 5 + k) * R * .3, by + R * .9, bx + k * R * .28, by + R * 1.35); x.stroke(); }
@@ -1325,7 +1340,16 @@ function iceOver(x, bx, by, R, t, stars) {
   x.beginPath(); for (var i = 0; i < 6; i++) { var a2 = i * 1.047 + .5; x.lineTo(bx + Math.cos(a2) * R, by + Math.sin(a2) * R); } x.closePath(); x.fill(); x.stroke();
 }
 function drawBoss(x, V, b, t, S) {
-  var cs = V.cs, bx = b.x * cs, by = b.y * cs, sz = cs * 6.2, im = b.lunge > 0 ? IMG.cobraR : IMG.cobra;
+  var cs = V.cs, bx = b.x * cs, by = b.y * cs, art = worldArt(S.cfg.world);
+  if (art.boss && art.boss.ok) {
+    var fr = Math.abs(b.vx) > Math.abs(b.vy) ? (b.vx > 0 ? 1 : 3) : (b.vy > 0 ? 2 : 0), bs = cs * 10 * (1 + 0.04 * Math.sin(t * 3));
+    if (b.lunge > 0) { x.fillStyle = 'rgba(255,40,40,.28)'; x.beginPath(); x.arc(bx, by, bs * .55, 0, 6.283); x.fill(); }
+    x.save(); x.translate(bx, by); x.rotate(Math.sin(t * 1.7) * 0.08);
+    x.drawImage(art.boss, fr * 192, 0, 192, 192, -bs / 2, -bs / 2, bs, bs); x.restore();
+    if (S.freeze > 0 || b.stun > 0) iceOver(x, bx, by, b.r * cs * 1.4, t, b.stun > 0 && !(S.freeze > 0));
+    return;
+  }
+  var sz = cs * 6.2, im = b.lunge > 0 ? IMG.cobraR : IMG.cobra;
   var row = Math.abs(b.vx) > Math.abs(b.vy) ? (b.vx > 0 ? 1 : 3) : (b.vy > 0 ? 2 : 0), col = Math.floor(b.ph * 0.6) % 3;
   x.fillStyle = 'rgba(0,0,0,.3)'; x.beginPath(); x.ellipse(bx, by + sz * .3, sz * .35, sz * .12, 0, 0, 6.283); x.fill();
   if (b.lunge > 0) { x.fillStyle = 'rgba(255,40,40,.25)'; x.beginPath(); x.arc(bx, by, sz * .5, 0, 6.283); x.fill(); }
@@ -1333,8 +1357,15 @@ function drawBoss(x, V, b, t, S) {
   else { x.fillStyle = '#2a5fa8'; x.beginPath(); x.arc(bx, by, b.r * cs, 0, 6.283); x.fill(); }
   if (S.freeze > 0 || b.stun > 0) iceOver(x, bx, by, b.r * cs * 1.4, t, b.stun > 0 && !(S.freeze > 0));
 }
-function drawCrab(x, V, c, t) {
+function drawCrab(x, V, c, t, S) {
   if (c.gone > 0) return;
+  var art = worldArt(S.cfg.world);
+  if (art.land.ok) {
+    var sz = V.cs * 3.4, step = Math.sin(c.ph) * 0.1;
+    x.save(); x.translate(c.x * V.cs, c.y * V.cs); x.rotate(step); if (c.vx < 0) x.scale(-1, 1);
+    x.fillStyle = 'rgba(0,0,0,.3)'; x.beginPath(); x.ellipse(0, sz * .3, sz * .32, sz * .1, 0, 0, 6.283); x.fill();
+    x.drawImage(art.land, -sz / 2, -sz / 2, sz, sz); x.restore(); return;
+  }
   var cs = V.cs, cx = c.x * cs, cy = c.y * cs, R = cs * .78, open = Math.sin(c.ph) * .35;
   x.strokeStyle = '#8d1f1f'; x.lineWidth = Math.max(1, cs * .1);
   for (var k = -1; k <= 1; k += 2) for (var l = 0; l < 3; l++) { var ly = cy + (l - 1) * R * .38, wig = Math.sin(c.ph + l) * R * .12; x.beginPath(); x.moveTo(cx + k * R * .6, ly); x.lineTo(cx + k * R * 1.15, ly + R * .25 + wig); x.stroke(); }
@@ -1371,7 +1402,7 @@ function drawField(cv, V, S, sk, t, dt, game) {
     for (var j = 0; j < fl.cells.length; j++) { var c = fl.cells[j]; x.fillRect((c % S.W) * cs, ((c / S.W) | 0) * cs, cs + .5, cs + .5); }
   }
   for (i = 0; i < S.items.length; i++) drawItem(x, V, S.items[i], t);
-  for (i = 0; i < S.crabs.length; i++) drawCrab(x, V, S.crabs[i], t);
+  for (i = 0; i < S.crabs.length; i++) drawCrab(x, V, S.crabs[i], t, S);
   for (i = S.snakes.length - 1; i >= 0; i--) drawSnake(x, V, S, S.snakes[i], sk[i], t);
   for (i = 0; i < S.balls.length; i++) drawBall(x, V, S.balls[i], t, S);
   // death ghosts (X-eyes)
@@ -1443,7 +1474,7 @@ var demo = (function () {
   var S, V = makeView(), on = false, raf, last, acc = 0, t = 0;
   function reset() {
     S = E.create(E.duelCfg(2, (Math.random() * 1e9) | 0));
-    S.cfg.time = 9999; S.snakes[0].lives = S.snakes[1].lives = 999;
+    S.cfg.time = 9999; S.snakes[0].lives = S.snakes[1].lives = 999; S.cfg.world = 1 + Math.floor(Math.random() * 6);
     S.snakes[0].ctrl = E.makeBot(3, (Math.random() * 1e9) | 0); S.snakes[1].ctrl = E.makeBot(3, (Math.random() * 1e9) | 0);
     var un = unlockedPics(); var pick = un.length ? un[Math.floor(Math.random() * un.length)] : 'l01';
     V.pic = picImg(pick, function () { V.lver = -1; });
@@ -1469,7 +1500,7 @@ var G = (function () {
   var S, V = makeView(), meta, raf, last, acc = 0, t = 0, q = [], stopReq = false, started = false, paused = false, endShown = false, cv, endT = 0, lastHud = '';
   function ctrl(S2, s) { if (q.length) { s.want = q.shift(); } if (stopReq) { s.stop = true; stopReq = false; } }
   function start(cfg, m) {
-    meta = m; S = E.create(cfg); S.snakes[0].ctrl = ctrl;
+    meta = m; if (!cfg.world) cfg.world = 1 + ((cfg.seed >>> 0) % 6); S = E.create(cfg); S.snakes[0].ctrl = ctrl;
     if (S.snakes[1]) S.snakes[1].ctrl = E.makeBot(cfg.rival, cfg.seed ^ 0x5bd1e995);
     V = makeView(); q = []; stopReq = false; started = false; paused = false; endShown = false; acc = 0; t = 0; endT = 0; lastHud = '';
     meta.pic = picFor(meta); V.pic = picImg(meta.pic, function () { V.lver = -1; });
@@ -1602,7 +1633,7 @@ var G = (function () {
     html += '<div class="stat"><span>' + T('score') + (rec ? ' · ' + T('new_record') : '') + '</span><b><bdi>' + S.score + '</bdi></b></div></div>';
     if (newPic) html += '<p style="color:var(--acc);font-weight:800;margin:12px 0 0">🖼️ ' + T('img_unlocked') + '</p>';
     html += '<div class="btns">';
-    var hasNext = meta.mode === 'level' && win && meta.n < 30;
+    var hasNext = meta.mode === 'level' && win && meta.n < 60;
     if (hasNext) html += '<button class="btn pri" id="rN">▶ ' + T('next') + '</button>';
     html += '<button class="btn ' + (hasNext ? '' : 'pri') + '" id="rA">↻ ' + T('retry') + '</button><button class="btn" id="rH">' + T('home') + '</button></div>';
     var m = modal(html, { dismiss: false, onBack: function () { closeModal(m); quit(); } });
@@ -1656,27 +1687,27 @@ function rulesModal() { var m = modal('<h3>' + T('r_title') + '</h3><div class="
 var RENDER = {
   home: function () {
     var ts = totalStars();
-    $('hLvSub').innerHTML = '★ <bdi>' + ts + ' / 90</bdi>';
+    $('hLvSub').innerHTML = '★ <bdi>' + ts + ' / 180</bdi>';
     var w = 0; for (var k in D.duel) w += D.duel[k] || 0;
     $('hDuelSub').textContent = T('wins', { n: w });
     $('hDailySub').textContent = (D.daily.date === today() && D.daily.done) ? T('daily_done') : (D.daily.streak ? T('streak', { n: D.daily.streak }) : '');
     $('hSkinSub').textContent = T('sk_' + D.skin);
-    $('hGalSub').innerHTML = '🖼️ <bdi>' + unlockedPics().length + ' / 49</bdi>';
+    $('hGalSub').innerHTML = '🖼️ <bdi>' + unlockedPics().length + ' / 79</bdi>';
     music.play(0.5);
   },
   levels: function () {
     var max = 0; for (var k in D.stars) if (D.stars[k] > 0) max = Math.max(max, +k);
     var open = max + 3, h = '';
-    for (var w = 1; w <= 3; w++) {
-      var bossDone = D.stars[w * 10] > 0, bannerPic = lvPic(w * 10);
-      h += '<div class="world"><div class="wban" style="' + (D.pics[bannerPic] ? 'background-image:url(img/' + bannerPic + '.jpg)' : '') + '"><div><small>' + T('world_n', { n: w }) + '</small><b>' + T('w' + w) + '</b><span>' + T('w' + w + 'd') + '</span></div></div><div class="path">';
+    for (var w = 1; w <= 6; w++) {
+      var bannerPic = D.pics[lvPic(w * 10)] ? lvPic(w * 10) : lvPic(w * 10 - 9), wl = (w - 1) * 10 + 1 > open;
+      h += '<div class="world' + (wl ? ' wlock' : '') + '"><div class="wban" style="background-image:url(img/' + bannerPic + '.jpg)"><div><small>' + T('world_n', { n: w }) + '</small><b>' + T('w' + w) + '</b><span>' + T('w' + w + 'd') + '</span></div></div><div class="path">';
       var pts = [];
       for (var i = 0; i < 10; i++) pts.push([50 + Math.sin(i * 1.05 + w) * 30, 46 + i * 84]);
       h += '<svg class="pline" viewBox="0 0 100 ' + (pts[9][1] + 50) + '" preserveAspectRatio="none"><polyline points="' + pts.map(function (p) { return p[0] + ',' + p[1]; }).join(' ') + '"/></svg>';
       for (i = 0; i < 10; i++) {
         var n = (w - 1) * 10 + i + 1, st = D.stars[n] || 0, lock = n > open, boss = n % 10 === 0, rv = n % 10 === 5, pic = lvPic(n), done = !!D.pics[pic];
-        h += '<button class="node' + (lock ? ' lock' : '') + (boss ? ' boss' : '') + (done ? ' done' : '') + (n === Math.min(open, 30) && !st ? ' cur' : '') + '" data-lv="' + n + '" style="left:' + pts[i][0] + '%;top:' + pts[i][1] + 'px">';
-        h += '<span class="nb"' + (done ? ' style="background-image:url(img/' + pic + '.jpg)"' : '') + '>' + (lock ? '🔒' : boss ? '<i class="cob"></i>' : '<bdi>' + n + '</bdi>') + '</span>';
+        h += '<button class="node' + (lock ? ' lock' : '') + (boss ? ' boss' : '') + (done ? ' done' : '') + (n === Math.min(open, 60) && !st ? ' cur' : '') + '" data-lv="' + n + '" style="left:' + pts[i][0] + '%;top:' + pts[i][1] + 'px">';
+        h += '<span class="nb"' + (done ? ' style="background-image:url(img/' + pic + '.jpg)"' : '') + '>' + (lock ? '🔒' : boss ? (w >= 4 ? '<i class="cob" style="background:url(img/boss' + w + '.webp) -128px 0/256px 64px;transform:scale(.9)"></i>' : '<i class="cob"></i>') : '<bdi>' + n + '</bdi>') + '</span>';
         h += '<span class="st">' + (st ? '★★★'.slice(0, st) + '<em>' + '★★★'.slice(0, 3 - st) + '</em>' : rv ? '⚔️' : '') + '</span></button>';
       }
       h += '</div></div>';
@@ -1686,7 +1717,7 @@ var RENDER = {
   },
   gallery: function () {
     var h = '', got = 0, all = [];
-    for (var n = 1; n <= 30; n++) all.push([lvPic(n), n]);
+    for (var n = 1; n <= 60; n++) all.push([lvPic(n), n]);
     for (var k = 1; k <= 19; k++) all.push(['x' + (k < 10 ? '0' : '') + k, 0]);
     all.forEach(function (a) {
       var on = !!D.pics[a[0]]; if (on) got++;
@@ -1790,7 +1821,7 @@ function renderAbout() {
   var h = '<div class="card" style="text-align:center"><img class="abicon" src="icon-192.png" alt=""><h2 style="margin:0">SnakeNest</h2><div class="mut">v<bdi>' + APP_VERSION + '</bdi></div></div>';
   h += '<div class="card"><div class="kv"><span>' + T('ab_version') + '</span><bdi>' + APP_VERSION + '</bdi></div><div class="kv"><span>' + T('ab_dev') + '</span><span>Barak Aflalo</span></div><div class="kv"><span>' + T('ab_platform') + '</span><span>PWA · HTML5</span></div><div class="kv"><span>' + T('ab_storage') + '</span><span>' + T('ab_storage_v') + '</span></div><div class="kv"><span>' + T('ab_license') + '</span><span>© AppNest 2026</span></div></div>';
   h += '<div style="display:grid;gap:9px"><button class="btn" id="aStore">🏪 ' + T('ab_store') + '</button><button class="btn" id="aShare">📤 ' + T('ab_share') + '</button><button class="btn" id="aFb">✉️ ' + T('ab_feedback') + '</button><button class="btn" id="aGuide">📖 ' + T('ab_guide') + '</button><button class="btn" id="aPriv">🔒 ' + T('ab_privacy') + '</button></div>';
-  h += '<div class="card" style="margin-top:12px"><b>' + T('ab_credits') + '</b><div class="mut" dir="ltr" style="text-align:left;line-height:1.6;margin-top:6px;font-size:13px">Game design, code, creatures &amp; world: Barak Aflalo · AppNest<br>Snake &amp; bonus sprites: Bas de Reuver (bdrgames.nl) — Snake Sprites, free use<br>King Cobra boss sprite: Jordan Irwin (AntumDeluge), CC-BY 4.0 / OGA-BY 3.0 — opengameart.org/node/20678<br>Illustrations: Ian MacLean, Luigi Castellani, Nicole Cardiff, Sara Mirabella — <i>Spears of the Dawn</i> art pack (Sine Nomine Publishing), public domain<br>Music: “Ancient Power of Serpents” by Kevin MacLeod, public domain (CC0)</div></div>';
+  h += '<div class="card" style="margin-top:12px"><b>' + T('ab_credits') + '</b><div class="mut" dir="ltr" style="text-align:left;line-height:1.6;margin-top:6px;font-size:13px">Game design, code, creatures &amp; world: Barak Aflalo · AppNest<br>Snake &amp; bonus sprites: Bas de Reuver (bdrgames.nl) — Snake Sprites, free use<br>King Cobra boss sprite: Jordan Irwin (AntumDeluge), CC-BY 4.0 / OGA-BY 3.0 — opengameart.org/node/20678<br>Illustrations: Ian MacLean, Luigi Castellani, Nicole Cardiff, Sara Mirabella — <i>Spears of the Dawn</i> art pack (Sine Nomine Publishing), public domain<br>Worlds 4–6 paintings, creatures &amp; boss serpents: created for SnakeNest with AI image generation (Barak Aflalo)<br>Music: “Ancient Power of Serpents” by Kevin MacLeod, public domain (CC0)</div></div>';
   h += '<p class="mut" style="text-align:center;margin-top:16px;line-height:1.5">' + T('ab_disc') + '</p>';
   $('abBody').innerHTML = h;
   $('aStore').onclick = function () { openUrl('https://appnest-store.pages.dev/'); };
