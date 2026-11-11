@@ -179,6 +179,20 @@ body.pad-on .shoot{display:none!important}
 #padFire:disabled{opacity:.35}
 
 .shoot img{width:52px;height:52px;pointer-events:none}
+
+.ncode{font-size:40px;font-weight:900;letter-spacing:8px;color:var(--acc);margin:4px 0}
+.seat{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.seat b{flex:1}
+.dot{width:10px;height:10px;border-radius:50%;background:#666;display:inline-block}
+.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.voice{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.voice button{padding:12px 4px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:700;font-size:13px;touch-action:none}
+.voice button.dn,#gTalk.dn{background:var(--acc);color:#111;border-color:var(--acc)}
+.netwait{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.55);color:#fff;font-weight:800;font-size:18px;z-index:7;text-align:center;padding:20px}
+.btn:disabled{opacity:.4}
+
+.bar.swap .p1{background:linear-gradient(90deg,#a855f7,#e2b4ff)}
+.bar.swap .p2{background:linear-gradient(90deg,#38c172,#9ff0b8)}
 </style>
 </head>
 <body>
@@ -193,6 +207,7 @@ body.pad-on .shoot{display:none!important}
     <div class="menu">
       <button class="mb pri" data-go="levels"><span class="em">🐍</span><span><span data-t="play_levels"></span><small id="hLvSub"></small></span></button>
       <button class="mb" data-go="duel"><span class="em">⚔️</span><span><span data-t="play_duel"></span><small id="hDuelSub"></small></span></button>
+      <button class="mb" data-go="online"><span class="em">🌐</span><span><span data-t="play_online"></span><small id="hOnSub"></small></span></button>
       <button class="mb" data-go="daily"><span class="em">📅</span><span><span data-t="play_daily"></span><small id="hDailySub"></small></span></button>
       <button class="mb" data-go="gallery"><span class="em">🖼️</span><span><span data-t="gallery"></span><small id="hGalSub"></small></span></button>
       <button class="mb" data-go="skins"><span class="em">🎨</span><span><span data-t="skins"></span><small id="hSkinSub"></small></span></button>
@@ -208,6 +223,8 @@ body.pad-on .shoot{display:none!important}
 <section class="screen" id="duel"><div class="top"><button class="bk" data-back></button><h2 data-t="duel_title"></h2></div>
   <div class="body"><div class="card"><p style="margin:0;line-height:1.55" data-t="duel_desc"></p></div><div class="bots" id="bots"></div><button class="btn pri" id="duelGo">⚔️ <span data-t="start"></span></button></div></section>
 
+<section class="screen" id="online"><div class="top"><button class="bk" data-back></button><h2 data-t="play_online"></h2></div><div class="body" id="onBody"></div></section>
+
 <section class="screen" id="daily"><div class="top"><button class="bk" data-back></button><h2 data-t="daily_title"></h2></div>
   <div class="body"><div class="card" style="text-align:center"><div style="font-size:54px" id="dIcon">📅</div><h3 id="dDate" style="margin:6px 0"></h3><p class="mut" data-t="daily_desc"></p><p id="dInfo" style="font-weight:700"></p></div><button class="btn pri" id="dailyGo">▶ <span data-t="start"></span></button></div></section>
 
@@ -221,17 +238,292 @@ body.pad-on .shoot{display:none!important}
 
 <section class="screen" id="game">
   <div class="hud">
-    <button class="ib" id="gPause" aria-label="pause">⏸</button>
+    <button class="ib" id="gPause" aria-label="pause">⏸</button><button class="ib" id="gTalk" aria-label="talk" style="display:none">🎙</button>
     <div class="hmid">
       <div class="hl"><span id="gL"></span><span id="gM"></span><span id="gR" class="hearts"></span></div>
       <div class="bar" id="gBar"><i class="p1" id="gB1"></i><i class="p2" id="gB2"></i><span class="tg" id="gTg"></span></div>
     </div>
   </div>
-  <div id="stage"><canvas id="cv"></canvas><div class="toast" id="toast"></div><button class="shoot" id="shootBtn" aria-label="shoot"></button><div class="hint" id="hint"></div></div>
+  <div id="stage"><canvas id="cv"></canvas><div class="toast" id="toast"></div><button class="shoot" id="shootBtn" aria-label="shoot"></button><div class="hint" id="hint"></div><div class="netwait" id="netWait" style="display:none"><span data-t="on_lost"></span></div></div>
   <div class="pad" id="pad"><span></span><button data-d="0">▲</button><span></span><button data-d="3">◀</button><button data-d="s">■</button><button data-d="1">▶</button><span></span><button data-d="2">▼</button><button data-d="f" id="padFire" disabled>🎯</button></div>
 </section>
 <div class="snack" id="snack"></div>
 <input type="file" id="fileIn" accept=".json,application/json" hidden>
+<script>/* =====================================================================
+   NestLink 1.1 — AppNest online multiplayer module (WebRTC via PeerJS)
+   One file, drop into any AppNest game. No server of our own:
+   - a public PeerJS server only introduces the phones; game data, voice
+     and voice messages then travel directly phone-to-phone.
+   - star layout: the host is seat 0 and relays messages between guests,
+     so 2–6 players work; voice is a direct mesh (good up to ~4–5).
+   - every game message is sequenced and re-sent after a reconnect.
+   The game owns the session object (persist it with the game state) and
+   receives events through callbacks. See NESTLINK.md for the API.
+   1.1: sendTo(seat, d) — a private message to one seat only (card games:
+        the host deals each player only their own cards). Compatible with 1.0.
+        Heartbeat: a phone that vanished (app closed, no signal) is marked offline
+        within ~10 s instead of looking connected forever.
+        After a reconnect, if the other side already got more messages than we
+        remember sending (we restored an older saved session), numbering continues
+        after theirs instead of being silently ignored.
+   ===================================================================== */
+const NestLink = (() => {
+  const CDNS = ['https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js', 'https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.5/peerjs.min.js'];
+  const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }];
+  const AB = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const genCode = (n = 5) => Array.from({ length: n }, () => AB[Math.floor(Math.random() * AB.length)]).join('');
+  const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  function loadScript(u) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = u; s.onload = res; s.onerror = rej; document.head.appendChild(s); setTimeout(rej, 12000); }); }
+  async function loadPeer() { if (window.Peer) return true; for (const u of CDNS) { try { await loadScript(u); if (window.Peer) return true; } catch (e) {} } return false; }
+  const b64 = buf => { let s = '', a = new Uint8Array(buf); for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
+  const unb64 = s => { const b = atob(s), a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; };
+
+  function create(opt) {
+    const L = { status: 'off', lastErr: null, peer: null, conns: {}, retry: null, chunks: {}, calls: {}, audio: {}, mic: null, talking: false, openMic: false, rec: null, seen: {}, hb: {}, hbT: null };
+    let S = null;                                         // the session — owned and persisted by the game
+    const ev = (k, ...a) => { try { opt[k] && opt[k](...a); } catch (e) { console.error(e); } };
+    const persist = () => ev('persist', S);
+    const roomId = c => (opt.app || 'nest') + '-v1-' + c.toLowerCase();
+    const max = () => opt.maxPlayers || 2;
+    const isHost = () => S && S.role === 'host';
+    function peerOpts() {
+      const q = new URLSearchParams(location.search), o = { debug: 0, config: { iceServers: opt.iceServers || ICE } };
+      if (q.get('peerhost')) { o.host = q.get('peerhost'); o.port = +(q.get('peerport') || 9000); o.path = '/'; o.secure = false; }   // test servers only
+      return o;
+    }
+    function setStatus(st, err) { L.status = st; if (err !== undefined) L.lastErr = err; ev('onStatus', st, L.lastErr); }
+    const link = seat => S.links[seat] || (S.links[seat] = { seq: 0, lastIn: 0, out: [] });
+    const rosterEntry = seat => S.roster.find(p => p.seat === seat);
+    function rawTo(seat, m) { const c = L.conns[seat]; try { if (c && c.open) c.send(m); } catch (e) {} }
+    function rawAll(m, except) { for (const s in L.conns) if (+s !== except) rawTo(+s, m); }
+
+    /* ---------- starting ---------- */
+    async function start(session) {
+      close(true); S = session; persist();
+      L.hbT = setInterval(beat, 3000);                   // after close(), which clears it
+      setStatus('connecting');
+      if (!(await loadPeer())) { setStatus('error', 'load'); return false; }
+      const peer = L.peer = new Peer(isHost() ? roomId(S.code) : undefined, peerOpts());
+      peer.on('open', id => {
+        S.pid = id; if (isHost()) { const me = rosterEntry(0); if (me) { me.pid = id; me.online = true; } }
+        persist(); setStatus(isHost() ? 'waiting' : 'connecting'); if (!isHost()) connectHost();
+      });
+      peer.on('connection', c => { if (isHost()) attach(c, null); });
+      peer.on('call', onCall);
+      peer.on('disconnected', () => setTimeout(() => { try { if (L.peer === peer && !peer.destroyed) peer.reconnect(); } catch (e) {} }, 1500));
+      peer.on('error', e => {
+        const t = e && e.type;
+        if (t === 'unavailable-id') {                     // room id still held (e.g. after reload) — new code while nobody joined, else retry
+          if (S.roster.length < 2) { S.code = genCode(); persist(); ev('onCode', S.code); }
+          setTimeout(() => start(S), S.roster.length < 2 ? 300 : 4000); return;
+        }
+        if (t === 'peer-unavailable') { setStatus('notfound', 'nf'); scheduleRetry(); return; }
+        if (/network|server-error|socket/.test(t || '')) setStatus('error', 'net');
+      });
+      return true;
+    }
+    function host(code) {
+      return start({ role: 'host', code: code || genCode(), seat: 0, cid: uid(), roster: [{ seat: 0, name: opt.name ? opt.name() : '', online: true, cid: null, voice: false }], links: {} });
+    }
+    function join(code) { return start({ role: 'guest', code: code.toUpperCase(), seat: null, cid: uid(), roster: [], links: {} }); }
+    function resume(session) { return start(session); }
+    function scheduleRetry() { clearTimeout(L.retry); if (S && !isHost() && !(L.conns[0] && L.conns[0].open)) L.retry = setTimeout(connectHost, 3000); }
+    function connectHost() { if (!L.peer || L.peer.destroyed || (L.conns[0] && L.conns[0].open)) return; attach(L.peer.connect(roomId(S.code), { reliable: true, serialization: 'json' }), 0); scheduleRetry(); }
+
+    /* ---------- connections ---------- */
+    function attach(c, seat) {
+      let mySeat = seat;                                  // the seat at the other end of this connection
+      const onOpen = () => {
+        if (!isHost()) { L.conns[0] = c; rawTo(0, { t: 'hi', cid: S.cid, name: opt.name ? opt.name() : '', have: link(0).lastIn, v: opt.version, hb: 1 }); }
+      };
+      if (c.open) onOpen(); else c.on('open', onOpen);
+      c.on('data', m => {
+        if (!m || !m.t) return;
+        const key = isHost() ? mySeat : 0;                // 1.1 heartbeat: remember when we last heard from them
+        if (key != null) L.seen[key] = Date.now();
+        if (m.t === 'ping') { if (key != null) L.hb[key] = 1; return; }
+        if (isHost() && m.t === 'hi') {                   // a guest introduces itself → give it a seat (same seat when it comes back)
+          let p = S.roster.find(x => x.cid === m.cid);
+          if (!p) {
+            if (S.roster.length >= max()) { try { c.send({ t: 'full' }); c.close(); } catch (e) {} return; }
+            let s = 1; while (S.roster.some(x => x.seat === s)) s++;
+            p = { seat: s, cid: m.cid, name: '', online: true, voice: false }; S.roster.push(p); S.roster.sort((a, b) => a.seat - b.seat);
+            ev('onJoin', s);
+          }
+          mySeat = p.seat; p.name = (m.name || '').slice(0, 20); p.online = true; p.pid = c.peer;
+          if ((m.have || 0) > link(mySeat).seq) link(mySeat).seq = m.have;   // 1.1: we restored an older session — keep numbering after what they already got
+          if (L.conns[mySeat] && L.conns[mySeat] !== c) { try { L.conns[mySeat].close(); } catch (e) {} }
+          L.conns[mySeat] = c; L.seen[mySeat] = Date.now(); L.hb[mySeat] = m.hb ? 1 : 0;   // 1.1 phones announce the heartbeat
+          rawTo(mySeat, { t: 'hi', seat: mySeat, have: link(mySeat).lastIn, roster: S.roster, v: opt.version, hb: 1 });
+          link(mySeat).out.filter(x => x.seq > (m.have || 0)).forEach(x => rawTo(mySeat, x));
+          if (m.v && opt.version && m.v.split('.')[0] !== opt.version.split('.')[0]) ev('onVersion', m.v);
+          persist(); broadcastRoster(); setStatus('open'); callEveryone();
+          return;
+        }
+        if (!isHost() && m.t === 'hi') {
+          S.seat = m.seat; S.roster = m.roster || []; L.seen[0] = Date.now(); L.hb[0] = m.hb ? 1 : 0;
+          if ((m.have || 0) > link(0).seq) link(0).seq = m.have;            // 1.1: same protection on the guest side
+          persist();
+          link(0).out.filter(x => x.seq > (m.have || 0)).forEach(x => rawTo(0, x));
+          if (m.v && opt.version && m.v.split('.')[0] !== opt.version.split('.')[0]) ev('onVersion', m.v);
+          clearTimeout(L.retry); setStatus('open'); ev('onRoster', S.roster); callEveryone(); return;
+        }
+        if (m.t === 'full') { setStatus('full', 'full'); close(true); return; }
+        onData(m, isHost() ? mySeat : 0);
+      });
+      const gone = () => {
+        if (isHost()) { if (mySeat == null || L.conns[mySeat] !== c) return; delete L.conns[mySeat]; const p = rosterEntry(mySeat); if (p) p.online = false; persist(); broadcastRoster(); setStatus(Object.keys(L.conns).length ? 'open' : 'waiting'); }
+        else { if (L.conns[0] !== c) return; delete L.conns[0]; setStatus('reconnecting'); scheduleRetry(); }
+        stopAudioFrom(mySeat);
+      };
+      c.on('close', gone); c.on('error', gone);
+    }
+    function broadcastRoster() { if (!isHost()) return; rawAll({ t: 'roster', roster: S.roster }); ev('onRoster', S.roster); }
+
+    /* ---------- messages ---------- */
+    function onData(m, via) {
+      if (m.t === 'roster') { S.roster = m.roster; persist(); ev('onRoster', S.roster); callEveryone(); return; }
+      if (m.t === 'need') { link(via).out.filter(x => x.seq > m.have).forEach(x => rawTo(via, x)); return; }
+      if (m.t === 'emo' || m.t === 'talk' || m.t === 'vm') {
+        if (isHost()) rawAll(m, via);                     // relay to the other guests
+        if (m.t === 'emo') ev('onEmoji', m.e, m.from);
+        else if (m.t === 'talk') { const p = rosterEntry(m.from); if (p) p.talking = m.on; ev('onTalk', m.from, m.on); }
+        else gotChunk(m);
+        return;
+      }
+      if (m.t === 'voice') { const p = rosterEntry(m.from); if (p) p.voice = m.on; if (isHost()) { rawAll(m, via); broadcastRoster(); } callEveryone(); return; }
+      if (m.t !== 'm') return;
+      const lk = link(via);
+      if (m.seq <= lk.lastIn) return;
+      if (m.seq > lk.lastIn + 1) { rawTo(via, { t: 'need', have: lk.lastIn }); return; }
+      lk.lastIn = m.seq; persist();
+      if (isHost() && max() > 2 && !m.p) for (const p of S.roster) if (p.seat !== 0 && p.seat !== m.from) seqTo(p.seat, m.d, m.from);
+      ev('onMessage', m.d, m.from);
+    }
+    function seqTo(seat, d, from, priv) {
+      const lk = link(seat), m = { t: 'm', seq: ++lk.seq, from, d }; if (priv) m.p = 1;
+      lk.out.push(m); if (lk.out.length > 300) lk.out.splice(0, lk.out.length - 300);
+      rawTo(seat, m);
+    }
+    function send(d) {                                    // reliable, ordered, reaches every other player
+      if (!S) return;
+      if (isHost()) { for (const p of S.roster) if (p.seat !== 0) seqTo(p.seat, d, 0); }
+      else seqTo(0, d, S.seat);
+      persist();
+    }
+    function sendTo(seat, d) {                            // private: host → one guest, or guest → host only (not relayed)
+      if (!S || seat === S.seat) return;
+      if (isHost()) { if (S.roster.some(p => p.seat === seat)) seqTo(seat, d, 0, true); }
+      else seqTo(0, d, S.seat, true);
+      persist();
+    }
+    function emoji(e) { if (S) rawAll({ t: 'emo', e, from: S.seat }); }
+    const isOpen = () => !!S && (isHost() ? Object.values(L.conns).some(c => c.open) : !!(L.conns[0] && L.conns[0].open));
+
+    /* ---------- voice: push-to-talk / open mic (direct mesh) ---------- */
+    async function micOn() {
+      if (L.mic) return true;
+      try { L.mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+      catch (e) { ev('onMicError', e && e.name); return false; }
+      L.mic.getAudioTracks().forEach(t => t.enabled = L.openMic);
+      const me = rosterEntry(S.seat); if (me) me.voice = true;
+      const m = { t: 'voice', on: true, from: S.seat }; rawAll(m);
+      callEveryone(); return true;
+    }
+    function callEveryone() {                             // each phone with a mic sends its own one-way audio call to every other phone
+      if (!L.mic || !L.peer || !S) return;
+      for (const p of S.roster) {
+        if (p.seat === S.seat || !p.online || !p.pid) continue;
+        const c = L.calls[p.seat]; if (c && !c._dead) continue;
+        try { const call = L.peer.call(p.pid, L.mic, { metadata: { seat: S.seat } }); L.calls[p.seat] = call; call.on('close', () => { call._dead = true; }); call.on('error', () => { call._dead = true; }); } catch (e) {}
+      }
+    }
+    function onCall(call) {
+      call.answer();                                      // receive only — our own audio goes out on our own call
+      call.on('stream', st => {
+        const seat = call.metadata && call.metadata.seat;
+        let a = L.audio[seat]; if (!a) { a = L.audio[seat] = document.createElement('audio'); a.autoplay = true; a.setAttribute('playsinline', ''); a.style.display = 'none'; document.body.appendChild(a); }
+        a.srcObject = st; const p = a.play(); if (p && p.catch) p.catch(() => ev('onAudioBlocked'));
+      });
+    }
+    function stopAudioFrom(seat) { const a = L.audio[seat]; if (a) { a.srcObject = null; a.remove(); delete L.audio[seat]; } const c = L.calls[seat]; if (c) { try { c.close(); } catch (e) {} delete L.calls[seat]; } }
+    async function talk(on) {
+      if (on && !(await micOn())) return false;
+      if (!L.mic) return false;
+      L.talking = on || L.openMic; L.mic.getAudioTracks().forEach(t => t.enabled = L.talking);
+      rawAll({ t: 'talk', on: L.talking, from: S.seat }); return true;
+    }
+    async function setOpenMic(on) { L.openMic = on; if (on && !(await micOn())) { L.openMic = false; return false; } return talk(on); }
+
+    /* ---------- voice messages ---------- */
+    async function recStart(maxSec) {
+      if (L.rec || !(await micOn())) return false;
+      const track = L.mic.getAudioTracks()[0].clone(); track.enabled = true;
+      const st = new MediaStream([track]), mime = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+      let r; try { r = new MediaRecorder(st, mime ? { mimeType: mime, audioBitsPerSecond: 24000 } : undefined); } catch (e) { ev('onMicError', 'rec'); return false; }
+      const parts = [], t0 = Date.now();
+      L.rec = { r, track, t0, timer: setTimeout(() => recStop(), (maxSec || 20) * 1000) };
+      r.ondataavailable = e => { if (e.data && e.data.size) parts.push(e.data); };
+      r.onstop = async () => {
+        track.stop();
+        const dur = Math.round((Date.now() - t0) / 100) / 10, blob = new Blob(parts, { type: r.mimeType || mime || 'audio/webm' });
+        if (L.rec && L.rec.cancel || dur < .4 || !blob.size) { L.rec = null; ev('onRecState', false); return; }
+        L.rec = null; ev('onRecState', false);
+        const data = b64(await blob.arrayBuffer()), id = uid(), CH = 12000, n = Math.ceil(data.length / CH);
+        for (let i = 0; i < n; i++) rawAll({ t: 'vm', id, i, n, dur, mime: blob.type, from: S.seat, data: data.slice(i * CH, (i + 1) * CH) });
+        ev('onVoiceMsg', URL.createObjectURL(blob), dur, S.seat, true);
+      };
+      r.start(); ev('onRecState', true, t0); return true;
+    }
+    function recStop(cancel) { if (!L.rec) return; clearTimeout(L.rec.timer); L.rec.cancel = !!cancel; try { L.rec.r.stop(); } catch (e) {} }
+    function gotChunk(m) {
+      const c = L.chunks[m.id] || (L.chunks[m.id] = { parts: [], got: 0, t: Date.now() });
+      if (c.parts[m.i] == null) { c.parts[m.i] = m.data; c.got++; }
+      if (c.got === m.n) { delete L.chunks[m.id]; const blob = new Blob([unb64(c.parts.join(''))], { type: m.mime || 'audio/webm' }); ev('onVoiceMsg', URL.createObjectURL(blob), m.dur, m.from, false); }
+      for (const k in L.chunks) if (Date.now() - L.chunks[k].t > 60000) delete L.chunks[k];
+    }
+
+    /* ---------- 1.1 heartbeat ----------
+       A phone that closes the app or loses signal often never fires 'close'. Every 3 s we ping
+       everyone; a peer that pings (1.1+) but has been silent for 10 s is treated as gone.
+       Peers on 1.0 never ping, so they are never dropped by mistake. */
+    function beat() {
+      if (!S) return;
+      const now = Date.now();
+      for (const k in L.conns) {
+        const s = +k; rawTo(s, { t: 'ping' });
+        if (!L.hb[s] || now - (L.seen[s] || now) < 10000) continue;
+        L.hb[s] = 0; const c = L.conns[s]; delete L.conns[s]; try { c.close(); } catch (e) {}
+        stopAudioFrom(s);
+        if (isHost()) { const p = rosterEntry(s); if (p) p.online = false; persist(); broadcastRoster(); setStatus(Object.keys(L.conns).length ? 'open' : 'waiting'); }
+        else { setStatus('reconnecting'); scheduleRetry(); }
+      }
+    }
+
+    /* ---------- closing ---------- */
+    function close(keepSession) {
+      clearTimeout(L.retry); clearInterval(L.hbT); L.hbT = null;
+      Object.keys(L.audio).forEach(s => stopAudioFrom(+s));
+      for (const s in L.conns) { try { L.conns[s].close(); } catch (e) {} }
+      L.conns = {};
+      if (L.mic) { L.mic.getTracks().forEach(t => t.stop()); L.mic = null; }
+      L.calls = {}; L.talking = false;
+      try { if (L.peer) L.peer.destroy(); } catch (e) {}
+      L.peer = null; if (!keepSession) S = null; setStatus('off');
+    }
+
+    return {
+      host, join, resume, close, send, sendTo, emoji, isOpen, talk, setOpenMic, recStart, recStop,
+      get status() { return L.status; }, get error() { return L.lastErr; }, get session() { return S; },
+      get seat() { return S ? S.seat : null; }, get roster() { return S ? S.roster : []; },
+      get micReady() { return !!L.mic; }, get talking() { return L.talking; }, get openMic() { return L.openMic; }, get recording() { return !!L.rec; },
+      inviteURL: () => location.origin + location.pathname + '?join=' + (S ? S.code : ''),
+      _L: L
+    };
+  }
+  return { create, genCode, loadPeer };
+})();
+</script>
 <script>/* SnakeNest engine — pure & deterministic (seeded RNG, fixed step 1/60). Runs in browser and Node. */
 (function (root) {
 'use strict';
@@ -845,12 +1137,51 @@ function simGain(S, s, cells) {
   return n;
 }
 
-var API = { SEA: SEA, NEU: NEU, DX: DX, DY: DY, STEP: STEP, rng: rng, create: create, step: step, levelCfg: levelCfg, duelCfg: duelCfg, dailyCfg: dailyCfg, makeBot: makeBot, pct: pct, seaLeft: seaLeft };
+/* ── online: host-authoritative snapshots (host simulates, guest renders) ── */
+function r2(v) { return Math.round(v * 100) / 100; }
+function snap(S, withGrid, events) {
+  return {
+    t: r2(S.t), v: S.ver, g: withGrid ? Array.prototype.join.call(S.grid, '') : null,
+    sn: S.snakes.map(function (s) { return [s.x, s.y, s.dir, s.moving ? 1 : 0, r2(s.acc), s.trail.slice(), s.lives, r2(s.dead), r2(s.inv), r2(s.para), s.ammo || '', s.ammoN, s.area, s.cuts, s.hist.slice(0, 6), r2(s.speed)]; }),
+    b: S.balls.map(function (b) { return [r2(b.x), r2(b.y), r2(b.vx), r2(b.vy), r2(b.stun || 0), r2(b.gone || 0), r2(b.ice || 0), b.r, b.big ? 1 : 0, r2(b.ph)]; }),
+    c: S.crabs.map(function (c) { return [r2(c.x), r2(c.y), r2(c.vx), r2(c.vy), r2(c.gone || 0), r2(c.ph)]; }),
+    it: S.items.map(function (i) { return [i.x, i.y, i.type, r2(i.t)]; }),
+    sh: S.shots.map(function (p) { return [r2(p.x), r2(p.y), r2(p.vx), r2(p.vy), p.type, p.owner]; }),
+    fz: r2(S.freeze), sc: S.score, o: S.over ? 1 : 0, r: S.result, ev: events || []
+  };
+}
+function applySnap(S, m) {
+  S.t = m.t;
+  if (m.g) { for (var i = 0; i < S.N; i++) S.grid[i] = m.g.charCodeAt(i) - 48; S.ver = m.v; }
+  S.trail.fill(0);
+  m.sn.forEach(function (a, k) {
+    var s = S.snakes[k]; if (!s) return;
+    s.x = a[0]; s.y = a[1]; s.dir = a[2]; s.moving = !!a[3]; s.acc = a[4]; s.trail = a[5]; s.lives = a[6]; s.dead = a[7]; s.inv = a[8]; s.para = a[9];
+    s.ammo = a[10] || null; s.ammoN = a[11]; s.area = a[12]; s.cuts = a[13]; s.hist = a[14]; s.speed = a[15];
+    for (var j = 0; j < s.trail.length; j++) S.trail[s.trail[j]] = s.id;
+  });
+  S.balls = m.b.map(function (a, k) { var o = S.balls[k] || {}; o.x = a[0]; o.y = a[1]; o.vx = a[2]; o.vy = a[3]; o.stun = a[4]; o.gone = a[5]; o.ice = a[6]; o.r = a[7]; o.big = !!a[8]; o.ph = a[9]; return o; });
+  S.crabs = m.c.map(function (a, k) { var o = S.crabs[k] || {}; o.x = a[0]; o.y = a[1]; o.vx = a[2]; o.vy = a[3]; o.gone = a[4]; o.ph = a[5]; return o; });
+  S.items = m.it.map(function (a) { return { x: a[0], y: a[1], type: a[2], t: a[3], life: 12 }; });
+  S.shots = m.sh.map(function (a) { return { x: a[0], y: a[1], vx: a[2], vy: a[3], type: a[4], owner: a[5], t: 1 }; });
+  S.freeze = m.fz; S.score = m.sc; S.over = !!m.o; S.result = m.r;
+}
+/* guest: move things between snapshots so motion looks smooth (no collisions, no rules) */
+function drift(S, dt) {
+  var i;
+  for (i = 0; i < S.balls.length; i++) { var b = S.balls[i]; if (b.gone > 0 || b.stun > 0 || S.freeze > 0) continue; b.x += b.vx * dt; b.y += b.vy * dt; b.ph += dt * 3; }
+  for (i = 0; i < S.crabs.length; i++) { var c = S.crabs[i]; if (c.gone > 0) continue; c.x += c.vx * dt; c.y += c.vy * dt; c.ph += dt * 8; }
+  for (i = 0; i < S.shots.length; i++) { var p = S.shots[i]; p.x += p.vx * dt; p.y += p.vy * dt; }
+  for (i = 0; i < S.snakes.length; i++) { var s = S.snakes[i]; if (s.moving && !(s.para > 0) && s.dead <= 0) s.acc = Math.min(0.95, s.acc + dt * s.speed); }
+}
+
+var API = { SEA: SEA, NEU: NEU, DX: DX, DY: DY, STEP: STEP, rng: rng, create: create, step: step, levelCfg: levelCfg, duelCfg: duelCfg, dailyCfg: dailyCfg, makeBot: makeBot, pct: pct, seaLeft: seaLeft, snap: snap, applySnap: applySnap, drift: drift };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.SNE = API;
 })(this);
 </script>
 <script>var LANG = {
 he: {
+  play_online: 'אונליין עם חבר', on_sub: 'קרב נחשים עם קול', on_desc: 'קרב נחשים מול חבר: כל אחד סוגר שטחים בצבע שלו, יורה, וחותך לשני את הזנב. מדברים תוך כדי משחק.', on_host: 'פתח חדר', on_join: 'יש לך קוד? הצטרף', on_enter: 'קוד', on_code: 'קוד החדר', on_invite: 'הזמן בוואטסאפ', on_copy: 'העתק קישור', on_copied: 'הקישור הועתק', on_inv_txt: 'בוא לקרב נחשים נגדי:', on_waiting: 'מחכה שהחבר יצטרף…', on_connecting: 'מתחבר…', on_open: 'מחוברים!', on_reconn: 'מתחבר מחדש…', on_start: 'התחל קרב', on_wait_host: 'מחכים שהמארח יתחיל', on_leave: 'עזוב את החדר', on_back_room: 'חזרה לחדר', seat_host: 'מארח', seat_guest: 'אורח', seat_empty: 'מקום פנוי', on_notfound: 'החדר לא נמצא — בדוק את הקוד', on_full: 'החדר מלא', on_err: 'החיבור נכשל — נסה שוב', v_ptt: 'לחץ ודבר', v_open: 'מיקרופון פתוח', v_msg: 'הודעה קולית', v_talking: '{n} מדבר', v_tap: 'הקש כדי לשמוע', v_denied: 'אין גישה למיקרופון', v_privacy: 'הקול עובר ישירות בין הטלפונים ולא נשמר', on_ver: 'לחבר יש גרסה אחרת של המשחק — כדאי לעדכן', on_lost: 'החיבור עם החבר נותק… מחכים', friend: 'חבר',
   am_venom: 'ארס', am_fire: 'אש', am_ice: 'קרח', am_bolt: 'ברק', t_para_hit: 'שיתקת אותו!', t_para_me: 'שותקת!', r10: 'תחמושת: אסוף 🧪 ארס, 🔥 אש, ❄️ קרח או ⚡ ברק — כל אחד נותן 3 יריות, והכפתור העגול יורק בכיוון שאתה זז. ארס משתק את היריב ויצורים, אש שורפת יצור ומעלימה אותו לכמה שניות, קרח מקפיא, וברק חותך את הזנב של היריב. גם המחשב והבוסים יורים — תזוז!',
   w4: 'יער הקסמים', w5: 'ממלכת הקרח', w6: 'הר הגעש', w4d: 'פטריות זוהרות, מכשפות וצבאים עתיקים', w5d: 'ארמונות קרח, דובים וזוהר צפוני', w6d: 'נהרות לבה, דרקונים ונפחי אש', w1: 'נווה המדבר', w2: 'הג׳ונגל הפראי', w3: 'ממלכת הרוחות', w1d: 'שווקים, דיונות וארמונות חול', w2d: 'נמרים, ציידים ושבילים בין העצים', w3d: 'מקדשים, קסמים וכשפים עתיקים', world_n: 'עולם {n}',
   gallery: 'גלריה', gal_lv: 'נפתחת בשלב {n}', gal_daily: 'נפתחת באתגר יומי', gal_count: '{a} / {b} תמונות', img_unlocked: 'תמונה חדשה נפתחה בגלריה!', score: 'ניקוד', new_record: 'שיא חדש!',
@@ -896,6 +1227,7 @@ he: {
   daily_res: 'אתגר יומי', new_skin: 'נחש חדש נפתח: {s}!', time_left: 'זמן', lives: 'חיים'
 },
 en: {
+  play_online: 'Online with a friend', on_sub: 'Snake battle with voice', on_desc: 'A snake battle against a friend: each closes land in their own color, shoots, and cuts the other’s tail. Talk while you play.', on_host: 'Open a room', on_join: 'Got a code? Join', on_enter: 'Code', on_code: 'Room code', on_invite: 'Invite on WhatsApp', on_copy: 'Copy link', on_copied: 'Link copied', on_inv_txt: 'come battle my snake:', on_waiting: 'Waiting for your friend…', on_connecting: 'Connecting…', on_open: 'Connected!', on_reconn: 'Reconnecting…', on_start: 'Start battle', on_wait_host: 'Waiting for the host to start', on_leave: 'Leave room', on_back_room: 'Back to the room', seat_host: 'Host', seat_guest: 'Guest', seat_empty: 'Free seat', on_notfound: 'Room not found — check the code', on_full: 'The room is full', on_err: 'Connection failed — try again', v_ptt: 'Push to talk', v_open: 'Open mic', v_msg: 'Voice message', v_talking: '{n} is talking', v_tap: 'Tap to listen', v_denied: 'No microphone access', v_privacy: 'Voice goes directly between the phones and is not saved', on_ver: 'Your friend has another game version — worth updating', on_lost: 'Lost connection with your friend… waiting', friend: 'Friend',
   am_venom: 'Venom', am_fire: 'Fire', am_ice: 'Ice', am_bolt: 'Bolt', t_para_hit: 'You paralyzed it!', t_para_me: 'Paralyzed!', r10: 'Ammo: grab 🧪 venom, 🔥 fire, ❄️ ice or ⚡ bolt — each gives 3 shots, and the round button spits in the direction you move. Venom paralyzes rivals and creatures, fire burns a creature away for a few seconds, ice freezes, and a bolt cuts the rival’s tail. The computer and bosses shoot too — keep moving!',
   w4: 'Enchanted Forest', w5: 'Frost Kingdom', w6: 'Volcano', w4d: 'Glowing mushrooms, witches and ancient stags', w5d: 'Ice palaces, bears and northern lights', w6d: 'Lava rivers, dragons and fire smiths', w1: 'Desert Oasis', w2: 'Wild Jungle', w3: 'Spirit Kingdom', w1d: 'Markets, dunes and sand palaces', w2d: 'Leopards, hunters and forest trails', w3d: 'Temples, magic and ancient spells', world_n: 'World {n}',
   gallery: 'Gallery', gal_lv: 'Unlocks at level {n}', gal_daily: 'Unlocks in a daily challenge', gal_count: '{a} / {b} pictures', img_unlocked: 'New picture unlocked in the gallery!', score: 'Score', new_record: 'New record!',
@@ -941,6 +1273,7 @@ en: {
   daily_res: 'Daily challenge', new_skin: 'New snake unlocked: {s}!', time_left: 'Time', lives: 'Lives'
 },
 ru: {
+  play_online: 'Онлайн с другом', on_sub: 'Битва змей с голосом', on_desc: 'Битва змей против друга: каждый захватывает землю своим цветом, стреляет и режет хвост другому. Общайтесь во время игры.', on_host: 'Создать комнату', on_join: 'Есть код? Войти', on_enter: 'Код', on_code: 'Код комнаты', on_invite: 'Пригласить в WhatsApp', on_copy: 'Копировать ссылку', on_copied: 'Ссылка скопирована', on_inv_txt: 'давай сразимся змеями:', on_waiting: 'Ждём друга…', on_connecting: 'Подключение…', on_open: 'Подключено!', on_reconn: 'Переподключение…', on_start: 'Начать битву', on_wait_host: 'Ждём, пока хозяин начнёт', on_leave: 'Выйти из комнаты', on_back_room: 'Назад в комнату', seat_host: 'Хозяин', seat_guest: 'Гость', seat_empty: 'Свободно', on_notfound: 'Комната не найдена — проверь код', on_full: 'Комната заполнена', on_err: 'Не удалось подключиться — попробуй ещё', v_ptt: 'Нажми и говори', v_open: 'Открытый микрофон', v_msg: 'Голосовое', v_talking: '{n} говорит', v_tap: 'Нажми, чтобы услышать', v_denied: 'Нет доступа к микрофону', v_privacy: 'Голос идёт напрямую между телефонами и не сохраняется', on_ver: 'У друга другая версия игры — стоит обновить', on_lost: 'Связь с другом потеряна… ждём', friend: 'Друг',
   am_venom: 'Яд', am_fire: 'Огонь', am_ice: 'Лёд', am_bolt: 'Молния', t_para_hit: 'Ты его парализовал!', t_para_me: 'Паралич!', r10: 'Боеприпасы: собирай 🧪 яд, 🔥 огонь, ❄️ лёд или ⚡ молнию — каждый даёт 3 выстрела, а круглая кнопка плюёт туда, куда ты движешься. Яд парализует соперника и существ, огонь сжигает существо на несколько секунд, лёд замораживает, молния перерезает хвост соперника. Компьютер и боссы тоже стреляют — двигайся!',
   w4: 'Зачарованный лес', w5: 'Ледяное царство', w6: 'Вулкан', w4d: 'Светящиеся грибы, ведьмы и древние олени', w5d: 'Ледяные дворцы, медведи и северное сияние', w6d: 'Реки лавы, драконы и огненные кузнецы', w1: 'Оазис в пустыне', w2: 'Дикие джунгли', w3: 'Царство духов', w1d: 'Рынки, дюны и песчаные дворцы', w2d: 'Леопарды, охотники и лесные тропы', w3d: 'Храмы, магия и древние чары', world_n: 'Мир {n}',
   gallery: 'Галерея', gal_lv: 'Откроется на уровне {n}', gal_daily: 'Откроется в задании дня', gal_count: '{a} / {b} картин', img_unlocked: 'В галерее новая картина!', score: 'Очки', new_record: 'Новый рекорд!',
@@ -986,6 +1319,7 @@ ru: {
   daily_res: 'Задание дня', new_skin: 'Новая змея: {s}!', time_left: 'Время', lives: 'Жизни'
 },
 es: {
+  play_online: 'Online con un amigo', on_sub: 'Batalla de serpientes con voz', on_desc: 'Una batalla de serpientes contra un amigo: cada uno cierra tierra con su color, dispara y corta la cola del otro. Hablad mientras jugáis.', on_host: 'Abrir sala', on_join: '¿Tienes código? Únete', on_enter: 'Código', on_code: 'Código de sala', on_invite: 'Invitar por WhatsApp', on_copy: 'Copiar enlace', on_copied: 'Enlace copiado', on_inv_txt: 'ven a luchar contra mi serpiente:', on_waiting: 'Esperando a tu amigo…', on_connecting: 'Conectando…', on_open: '¡Conectados!', on_reconn: 'Reconectando…', on_start: 'Empezar batalla', on_wait_host: 'Esperando a que el anfitrión empiece', on_leave: 'Salir de la sala', on_back_room: 'Volver a la sala', seat_host: 'Anfitrión', seat_guest: 'Invitado', seat_empty: 'Libre', on_notfound: 'Sala no encontrada — revisa el código', on_full: 'La sala está llena', on_err: 'Falló la conexión — inténtalo de nuevo', v_ptt: 'Pulsa y habla', v_open: 'Micro abierto', v_msg: 'Mensaje de voz', v_talking: '{n} está hablando', v_tap: 'Toca para escuchar', v_denied: 'Sin acceso al micrófono', v_privacy: 'La voz va directa entre los teléfonos y no se guarda', on_ver: 'Tu amigo tiene otra versión del juego — conviene actualizar', on_lost: 'Se perdió la conexión con tu amigo… esperando', friend: 'Amigo',
   am_venom: 'Veneno', am_fire: 'Fuego', am_ice: 'Hielo', am_bolt: 'Rayo', t_para_hit: '¡Lo paralizaste!', t_para_me: '¡Paralizado!', r10: 'Munición: recoge 🧪 veneno, 🔥 fuego, ❄️ hielo o ⚡ rayo — cada uno da 3 disparos, y el botón redondo escupe hacia donde te mueves. El veneno paraliza a rivales y criaturas, el fuego hace desaparecer una criatura unos segundos, el hielo congela y el rayo corta la cola del rival. La máquina y los jefes también disparan: ¡muévete!',
   w4: 'Bosque encantado', w5: 'Reino helado', w6: 'Volcán', w4d: 'Hongos brillantes, brujas y ciervos antiguos', w5d: 'Palacios de hielo, osos y auroras', w6d: 'Ríos de lava, dragones y herreros de fuego', w1: 'Oasis del desierto', w2: 'Selva salvaje', w3: 'Reino de los espíritus', w1d: 'Mercados, dunas y palacios de arena', w2d: 'Leopardos, cazadores y senderos', w3d: 'Templos, magia y hechizos antiguos', world_n: 'Mundo {n}',
   gallery: 'Galería', gal_lv: 'Se abre en el nivel {n}', gal_daily: 'Se abre en un reto diario', gal_count: '{a} / {b} imágenes', img_unlocked: '¡Nueva imagen en la galería!', score: 'Puntos', new_record: '¡Nuevo récord!',
@@ -1031,6 +1365,7 @@ es: {
   daily_res: 'Reto diario', new_skin: 'Nueva serpiente: {s}!', time_left: 'Tiempo', lives: 'Vidas'
 },
 ar: {
+  play_online: 'أونلاين مع صديق', on_sub: 'معركة ثعابين مع صوت', on_desc: 'معركة ثعابين ضد صديق: كل واحد يغلق الأرض بلونه ويطلق النار ويقطع ذيل الآخر. تحدّثا أثناء اللعب.', on_host: 'افتح غرفة', on_join: 'لديك رمز؟ انضم', on_enter: 'الرمز', on_code: 'رمز الغرفة', on_invite: 'ادعُ عبر واتساب', on_copy: 'انسخ الرابط', on_copied: 'تم نسخ الرابط', on_inv_txt: 'تعال قاتل ثعباني:', on_waiting: 'بانتظار صديقك…', on_connecting: 'جارٍ الاتصال…', on_open: 'متصلان!', on_reconn: 'إعادة الاتصال…', on_start: 'ابدأ المعركة', on_wait_host: 'بانتظار أن يبدأ المضيف', on_leave: 'غادر الغرفة', on_back_room: 'العودة إلى الغرفة', seat_host: 'المضيف', seat_guest: 'الضيف', seat_empty: 'مقعد فارغ', on_notfound: 'الغرفة غير موجودة — تحقق من الرمز', on_full: 'الغرفة ممتلئة', on_err: 'فشل الاتصال — حاول مجددًا', v_ptt: 'اضغط وتحدّث', v_open: 'ميكروفون مفتوح', v_msg: 'رسالة صوتية', v_talking: '{n} يتحدث', v_tap: 'اضغط للاستماع', v_denied: 'لا يوجد إذن للميكروفون', v_privacy: 'الصوت ينتقل مباشرة بين الهاتفين ولا يُحفظ', on_ver: 'لدى صديقك إصدار آخر من اللعبة — يُفضّل التحديث', on_lost: 'انقطع الاتصال بصديقك… بانتظار', friend: 'صديق',
   am_venom: 'سم', am_fire: 'نار', am_ice: 'جليد', am_bolt: 'برق', t_para_hit: 'شللته!', t_para_me: 'أصبت بالشلل!', r10: 'الذخيرة: اجمع 🧪 السم أو 🔥 النار أو ❄️ الجليد أو ⚡ البرق — كل واحدة تعطي 3 طلقات، والزر الدائري يبصق في اتجاه حركتك. السم يشل الخصم والمخلوقات، والنار تحرق المخلوق وتخفيه لثوانٍ، والجليد يجمّد، والبرق يقطع ذيل الخصم. الحاسوب والزعماء يطلقون أيضًا — تحرّك!',
   w4: 'الغابة المسحورة', w5: 'مملكة الجليد', w6: 'البركان', w4d: 'فطر متوهج وساحرات وأيائل قديمة', w5d: 'قصور جليدية ودببة وشفق قطبي', w6d: 'أنهار حمم وتنانين وحدادو النار', w1: 'واحة الصحراء', w2: 'الغابة البرية', w3: 'مملكة الأرواح', w1d: 'أسواق وكثبان وقصور رملية', w2d: 'نمور وصيادون ودروب الغابة', w3d: 'معابد وسحر وتعاويذ قديمة', world_n: 'العالم {n}',
   gallery: 'المعرض', gal_lv: 'تُفتح في المرحلة {n}', gal_daily: 'تُفتح في تحدي اليوم', gal_count: '{a} / {b} صور', img_unlocked: 'صورة جديدة في المعرض!', score: 'النقاط', new_record: 'رقم قياسي جديد!',
@@ -1080,7 +1415,7 @@ ar: {
 <script>/* SnakeNest app shell + renderer */
 (function () {
 'use strict';
-var APP_VERSION = '0.5.1';
+var APP_VERSION = '0.6.0';
 var E = window.SNE;
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'sk_data';
@@ -1142,7 +1477,7 @@ window.addEventListener('popstate', function () {
   if (hist.ignore > 0) { hist.ignore--; return; }
   hist.guard = false; goBack(); syncHistory();
 });
-var SCREEN_NAMES = { gallery: 'gallery', home: 'home', levels: 'play_levels', duel: 'play_duel', daily: 'play_daily', skins: 'skins', rules: 'howto', settings: 'settings', about: 'about', game: 'home' };
+var SCREEN_NAMES = { online: 'play_online', gallery: 'gallery', home: 'home', levels: 'play_levels', duel: 'play_duel', daily: 'play_daily', skins: 'skins', rules: 'howto', settings: 'settings', about: 'about', game: 'home' };
 function cur() { return nav[nav.length - 1]; }
 function show(id) {
   document.querySelectorAll('.screen').forEach(function (s) { s.classList.toggle('on', s.id === id); });
@@ -1573,7 +1908,7 @@ function drawField(cv, V, S, sk, t, dt, game) {
   x.globalAlpha = 1;
   x.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
   if (game) {
-    var dg = dangerLevel(S); V.danger += (dg - V.danger) * Math.min(1, dt * 8);
+    var dg = dangerLevel(S, (game | 0) - 1); V.danger += (dg - V.danger) * Math.min(1, dt * 8);
     if (V.danger > 0.02) {
       var vg = x.createRadialGradient(V.w / 2, V.h / 2, Math.min(V.w, V.h) * .35, V.w / 2, V.h / 2, Math.max(V.w, V.h) * .7);
       vg.addColorStop(0, 'rgba(255,0,40,0)'); vg.addColorStop(1, 'rgba(255,0,40,' + (0.45 * V.danger) + ')');
@@ -1582,8 +1917,8 @@ function drawField(cv, V, S, sk, t, dt, game) {
   }
   x.setTransform(1, 0, 0, 1, 0, 0);
 }
-function dangerLevel(S) {
-  var p = S.snakes[0]; if (!p.trail.length || p.dead > 0 || S.freeze > 0) return 0;
+function dangerLevel(S, k) {
+  var p = S.snakes[k > 0 ? k : 0]; if (!p.trail.length || p.dead > 0 || S.freeze > 0) return 0;
   var best = 99, cells = p.trail, W = S.W;
   for (var i = 0; i < S.balls.length; i++) {
     var b = S.balls[i]; if (b.stun > 0) continue;
@@ -1647,10 +1982,18 @@ var demo = (function () {
 /* ───── game ───── */
 var G = (function () {
   var S, V = makeView(), meta, raf, last, acc = 0, t = 0, q = [], stopReq = false, started = false, paused = false, endShown = false, cv, endT = 0, lastHud = '';
+  var me = 0, myId = 1, role = null, rq = [], rStop = false, sendT = 0, sentVer = -1, evBuf = [], pending = null, hintOff = false;
+  function remoteCtrl(S2, s) { if (rq.length) s.want = rq.shift(); if (rStop) { s.stop = true; rStop = false; } }
   function ctrl(S2, s) { if (q.length) { s.want = q.shift(); } if (stopReq) { s.stop = true; stopReq = false; } }
   function start(cfg, m) {
     meta = m; if (!cfg.world) cfg.world = 1 + ((cfg.seed >>> 0) % 6); S = E.create(cfg); S.snakes[0].ctrl = ctrl;
-    if (S.snakes[1]) S.snakes[1].ctrl = E.makeBot(cfg.rival, cfg.seed ^ 0x5bd1e995);
+    role = m.mode === 'online' ? m.role : null; me = role === 'guest' ? 1 : 0; myId = me + 1;
+    rq = []; rStop = false; sendT = 0; sentVer = -1; evBuf = []; pending = null; hintOff = false;
+    if (S.snakes[1]) S.snakes[1].ctrl = role === 'host' ? remoteCtrl : role === 'guest' ? null : E.makeBot(cfg.rival, cfg.seed ^ 0x5bd1e995);
+    if (role === 'guest') S.snakes[0].ctrl = null;
+    while (modals.length) closeModal();
+    $('gTalk').style.display = role ? '' : 'none';
+    $('gBar').classList.toggle('swap', me === 1);
     V = makeView(); q = []; stopReq = false; started = false; paused = false; endShown = false; acc = 0; t = 0; endT = 0; lastHud = '';
     meta.pic = picFor(meta); V.pic = picImg(meta.pic, function () { V.lver = -1; });
     music.play(0.28);
@@ -1664,10 +2007,14 @@ var G = (function () {
     $('gTg').style.insetInlineStart = (cfg.target * 100) + '%';
     if (cfg.boss) $('gTg').style.display = 'none';
     D.stats.games++; save();
+    if (role) started = true;
     cancelAnimationFrame(raf); last = 0; raf = requestAnimationFrame(frame);
   }
+  function hideHint() { if (!hintOff) { hintOff = true; $('hint').style.display = 'none'; } }
   function input(d) {
     if (!S || paused || S.over) return;
+    if (role === 'guest') { Net.send({ k: 'in', d: d }); sfx.turn(); hideHint(); return; }
+    if (role) hideHint();
     var p = S.snakes[0];
     if (!started) { started = true; $('hint').style.display = 'none'; }
     var lastD = q.length ? q[q.length - 1] : (p.want != null ? p.want : p.dir);
@@ -1675,32 +2022,51 @@ var G = (function () {
     if (q.length >= 3) q.shift();
     q.push(d); sfx.turn();
   }
-  function stopIn() { if (!S || paused) return; if (!started) return; stopReq = true; }
-  function shootIn() { if (!S || paused || S.over || !started) return; var p = S.snakes[0]; if (p.ammoN > 0) p.shootReq = true; }
+  function stopIn() { if (!S || paused) return; if (!started) return; if (role === 'guest') { Net.send({ k: 'stop' }); return; } stopReq = true; }
+  function shootIn() { if (!S || paused || S.over || !started) return; var p = S.snakes[me]; if (!(p.ammoN > 0)) return; if (role === 'guest') { Net.send({ k: 'fire' }); return; } p.shootReq = true; }
+  function onNet(m) {
+    if (!S) return;
+    if (role === 'host') { if (m.k === 'in') { if (rq.length >= 3) rq.shift(); rq.push(m.d); } else if (m.k === 'stop') rStop = true; else if (m.k === 'fire') S.snakes[1].shootReq = true; }
+    else if (role === 'guest' && m.k === 'snap') pending = m;
+  }
   function frame(ts) {
     if (cur() !== 'game') return;
     var dt = Math.min(0.05, (ts - (last || ts)) / 1000); last = ts;
     if (!paused) {
       t += dt;
-      if (started && !S.over) { acc += dt; var n = 0; while (acc >= E.STEP && n++ < 6) { E.step(S); acc -= E.STEP; } if (n >= 6) acc = 0; }
+      var netOk = !role || Net.status === 'open';
+      $('netWait').style.display = netOk ? 'none' : '';
+      if (role === 'guest') {
+        if (pending) { E.applySnap(S, pending); S.events = pending.ev || []; pending = null; } else E.drift(S, dt);
+      } else if (started && !S.over && netOk) { acc += dt; var n = 0; while (acc >= E.STEP && n++ < 6) { E.step(S); acc -= E.STEP; } if (n >= 6) acc = 0; }
+      if (role === 'host') {
+        for (var ei = 0; ei < S.events.length; ei++) evBuf.push(S.events[ei]);
+        sendT -= dt;
+        if (sendT <= 0 && netOk) { sendT = 0.05; var ch = S.ver !== sentVer; sentVer = S.ver; var sm = E.snap(S, ch, evBuf); sm.k = 'snap'; evBuf = []; Net.send(sm); }
+      }
       var sk = skins();
       handleFx(V, S, sk, S.events, t);
       gameEvents(S.events); S.events.length = 0;
       if (S.over && !endShown) {
         endT += dt;
-        var won = S.result && S.result.r === 'win';
+        var won = myResult() === 'win';
         if (won) V.reveal = Math.min(1, Math.max(0, (endT - 0.4) / 1.6));
         if (endT > (won ? 2.6 : 0.9)) { endShown = true; showResult(); }
       }
     }
-    drawField(cv, V, S, skins(), t, paused ? 0 : dt, true);
+    drawField(cv, V, S, skins(), t, paused ? 0 : dt, myId);
     hud();
     raf = requestAnimationFrame(frame);
   }
-  function skins() { return [skinById(D.skin), RIVAL]; }
+  function skins() {
+    if (role && meta.skins) { var a = skinById(meta.skins[0]), b = skinById(meta.skins[1]); return [a, a === b ? RIVAL : b]; }
+    return [skinById(D.skin), RIVAL];
+  }
+  function myResult() { var r = S.result && S.result.r; if (me === 1 && r) r = r === 'win' ? 'lose' : r === 'lose' ? 'win' : r; return r; }
   function picFor(m) {
     if (m.mode === 'level') return 'l' + (m.n < 10 ? '0' : '') + m.n;
     if (m.mode === 'daily') { var k = 1 + (m.date % 20); return 'x' + (k < 10 ? '0' : '') + k; }
+    if (m.pic) return m.pic;
     var un = unlockedPics(); return un.length ? un[(m.seed >>> 0) % un.length] : 'l01';
   }
   var toastT;
@@ -1708,13 +2074,13 @@ var G = (function () {
   function gameEvents(ev) {
     for (var i = 0; i < ev.length; i++) {
       var e = ev[i];
-      if (e.t === 'cap' && e.id === 1) { sfx.cap(e.pct); vib(15); if (e.pct >= 0.12) toast(T('t_big')); }
+      if (e.t === 'cap' && e.id === myId) { sfx.cap(e.pct); vib(15); if (e.pct >= 0.12) toast(T('t_big')); }
       else if (e.t === 'cap') { if (e.pct > 0.03) tone(300, 0.12, 'triangle', 0.04); }
-      else if (e.t === 'die' && e.id === 1) { sfx.die(); vib([90, 40, 90]); q = []; }
+      else if (e.t === 'die' && e.id === myId) { sfx.die(); vib([90, 40, 90]); q = []; }
       else if (e.t === 'die') { tone(500, 0.3, 'sawtooth', 0.05, 120); }
-      else if (e.t === 'cut') { sfx.cut(); vib(40); if (e.by === 1) { toast(T('t_cut')); D.stats.cuts++; } else toast(T('t_cutme')); }
+      else if (e.t === 'cut') { sfx.cut(); vib(40); if (e.by === myId) { toast(T('t_cut')); D.stats.cuts++; } else toast(T('t_cutme')); }
       else if (e.t === 'life') { sfx.life(); toast(T('t_life')); }
-      else if (e.t === 'item' && e.id === 1) {
+      else if (e.t === 'item' && e.id === myId) {
         vib(25);
         if (e.type === 'apple') { sfx.life(); toast('🍎 ' + T('it_apple')); }
         else if (e.type === 'gapple') { tone(1200, 0.4, 'sine', 0.08, 300); toast('🧊 ' + T('it_gapple')); }
@@ -1723,24 +2089,25 @@ var G = (function () {
         else if (AMMO_IC[e.type]) { tone(600, 0.1, 'triangle', 0.07, 1200); toast(AMMO_IC[e.type] + ' +3 ' + T('am_' + e.type)); }
       }
       else if (e.t === 'lunge') { tone(140, 0.35, 'sawtooth', 0.07, 70); }
-      else if (e.t === 'shoot') { if (e.id === 1) { tone(e.type === 'bolt' ? 1400 : e.type === 'ice' ? 1800 : e.type === 'fire' ? 300 : 700, 0.16, e.type === 'fire' ? 'sawtooth' : 'triangle', 0.08, e.type === 'fire' ? 120 : 200); vib(12); } else tone(500, 0.1, 'triangle', 0.04, 200); }
+      else if (e.t === 'shoot') { if (e.id === myId) { tone(e.type === 'bolt' ? 1400 : e.type === 'ice' ? 1800 : e.type === 'fire' ? 300 : 700, 0.16, e.type === 'fire' ? 'sawtooth' : 'triangle', 0.08, e.type === 'fire' ? 120 : 200); vib(12); } else tone(500, 0.1, 'triangle', 0.04, 200); }
       else if (e.t === 'spit') tone(260, 0.25, 'sawtooth', 0.06, 90);
       else if (e.t === 'phit') {
-        if (e.by === 1 && e.what === 'snake') { toast(T('t_para_hit')); vib(30); tone(900, 0.2, 'square', 0.06, 1500); }
-        else if (e.by === 1 && e.what === 'tail') { toast(T('t_cut')); }
-        else if (e.what === 'snake' && e.id === 1) { toast(T('t_para_me')); vib([40, 30, 40]); tone(200, 0.3, 'sawtooth', 0.07, 80); }
-        else if (e.by === 1 && (e.what === 'ball' || e.what === 'crab') && e.type === 'fire') { noise(0.25, 0.2, 1500); }
-        else if (e.by === 1) tone(1100, 0.08, 'triangle', 0.05);
+        if (e.by === myId && e.what === 'snake') { toast(T('t_para_hit')); vib(30); tone(900, 0.2, 'square', 0.06, 1500); }
+        else if (e.by === myId && e.what === 'tail') { toast(T('t_cut')); }
+        else if (e.what === 'snake' && e.id === myId) { toast(T('t_para_me')); vib([40, 30, 40]); tone(200, 0.3, 'sawtooth', 0.07, 80); }
+        else if (e.by === myId && (e.what === 'ball' || e.what === 'crab') && e.type === 'fire') { noise(0.25, 0.2, 1500); }
+        else if (e.by === myId) tone(1100, 0.08, 'triangle', 0.05);
       }
     }
   }
   function hud() {
-    var p = S.snakes[0], r = S.snakes[1], cfg = S.cfg, label, mid, right;
-    if (meta.mode === 'level') label = T('level', { n: meta.n }); else if (meta.mode === 'daily') label = T('daily_res'); else label = T('play_duel') + ' · ' + T('bot' + meta.bot);
+    var p = S.snakes[me], r = S.snakes[1 - me], cfg = S.cfg, label, mid, right;
+    if (role) label = T('play_online');
+    else if (meta.mode === 'level') label = T('level', { n: meta.n }); else if (meta.mode === 'daily') label = T('daily_res'); else label = T('play_duel') + ' · ' + T('bot' + meta.bot);
     if (cfg.duel) { var rem = Math.max(0, cfg.time - S.t), mm = Math.floor(rem / 60), ss = Math.floor(rem % 60); mid = '⏱ ' + mm + ':' + (ss < 10 ? '0' : '') + ss; }
     else if (S.boss) mid = '🐍 ' + Math.round(S.boss.region * 100) + '% → ' + Math.round(cfg.bossTrap * 100) + '%';
     else mid = Math.floor(E.pct(S, p) * 100) + '% / ' + Math.round(cfg.target * 100) + '%';
-    mid += '  ·  ' + S.score;
+    if (!role) mid += '  ·  ' + S.score;
     right = '❤️'.repeat(Math.max(0, Math.min(p.lives, 6)));
     if (r && cfg.duel) right += ' 💜' + Math.max(0, r.lives);
     var sb = $('shootBtn'), am = p.ammoN > 0 ? p.ammo : '';
@@ -1753,6 +2120,13 @@ var G = (function () {
   }
   function pause(open) {
     if (!S || S.over) return;
+    if (role) {
+      var om = modal('<h3>' + T('play_online') + '</h3><div class="btns"><button class="btn pri" id="pR">▶ ' + T('resume') + '</button><button class="btn" id="pH">❓ ' + T('rules') + '</button><button class="btn bad" id="pQ">✕ ' + T('quit') + '</button></div>', { onBack: function () { closeModal(om); quit(); } });
+      om.el.querySelector('#pR').onclick = function () { closeModal(om); };
+      om.el.querySelector('#pH').onclick = function () { rulesModal(); };
+      om.el.querySelector('#pQ').onclick = function () { closeModal(om); quit(); };
+      return;
+    }
     paused = true;
     if (open === false) return;
     var m = modal('<h3>⏸ ' + T('pause') + '</h3><div class="btns"><button class="btn pri" id="pR">▶ ' + T('resume') + '</button><button class="btn" id="pS">↻ ' + T('restart') + '</button><button class="btn" id="pH">❓ ' + T('rules') + '</button><button class="btn bad" id="pQ">✕ ' + T('quit') + '</button></div>', {
@@ -1763,13 +2137,15 @@ var G = (function () {
     m.el.querySelector('#pH').onclick = function () { rulesModal(); };
     m.el.querySelector('#pQ').onclick = function () { closeModal(m); quit(); };
   }
-  function quit() { cancelAnimationFrame(raf); paused = true; while (modals.length) closeModal(); if (cur() === 'game') { nav.pop(); show(cur()); } music.play(0.5); }
+  function quit() { cancelAnimationFrame(raf); paused = true; var wasOnline = !!role; role = null; while (modals.length) closeModal(); if (cur() === 'game') { nav.pop(); show(cur()); } music.play(0.5); if (wasOnline && cur() !== 'online') go('online'); }
   function restart() {
+    if (role === 'host') { Net.startGame(); return; }
+    if (role === 'guest') return;
     var c = meta.mode === 'level' ? E.levelCfg(meta.n) : meta.mode === 'daily' ? E.dailyCfg(meta.date) : E.duelCfg(meta.bot, meta.seed);
     start(c, meta);
   }
   function showResult() {
-    var p = S.snakes[0], r = S.snakes[1], res = S.result, win = res.r === 'win', html = '', stars = 0, prevStars = totalStars();
+    var p = S.snakes[me], r = S.snakes[1 - me], res = S.result, mr = myResult(), win = mr === 'win', html = '', stars = 0, prevStars = totalStars();
     if (win) sfx.win(); else sfx.lose();
     vib(win ? [30, 50, 30, 50, 80] : 200);
     if (meta.mode === 'level') {
@@ -1779,15 +2155,16 @@ var G = (function () {
       if (dd.date !== meta.date) { dd.date = meta.date; dd.done = false; dd.best = 0; }
       dd.best = Math.max(dd.best, E.pct(S, p));
       if (win && !dd.done) { dd.done = true; dd.streak = (dd.last === prevDay(meta.date)) ? dd.streak + 1 : 1; dd.last = meta.date; }
-    } else if (win) D.duel[meta.bot] = (D.duel[meta.bot] || 0) + 1;
+    } else if (role) { D.online = D.online || { w: 0, l: 0 }; if (win) D.online.w++; else if (mr === 'lose') D.online.l++; }
+    else if (win) D.duel[meta.bot] = (D.duel[meta.bot] || 0) + 1;
     var newPic = false, rec = false, bk = meta.mode === 'level' ? 'l' + meta.n : meta.mode;
     if (win && meta.pic && !D.pics[meta.pic]) { D.pics[meta.pic] = 1; newPic = true; }
     if (S.score > (D.best[bk] || 0)) { rec = (D.best[bk] || 0) > 0; D.best[bk] = S.score; }
     save();
-    var title = win ? T('win_title') : res.r === 'draw' ? T('draw_title') : T('lose_title');
-    html += '<div style="font-size:54px">' + (win ? '🏆' : res.r === 'draw' ? '🤝' : '🐍💥') + '</div><h3>' + title + '</h3>';
+    var title = win ? T('win_title') : mr === 'draw' ? T('draw_title') : T('lose_title');
+    html += '<div style="font-size:54px">' + (win ? '🏆' : mr === 'draw' ? '🤝' : '🐍💥') + '</div><h3>' + title + '</h3>';
     if (meta.mode === 'level' && win) { html += '<div class="stars">'; for (var i = 1; i <= 3; i++) html += i <= stars ? '★' : '<span class="off">★</span>'; html += '</div>'; }
-    if (!win) { var why = res.why === 'lives' ? (p.lives <= 0 ? 'why_lives' : 'why_rlives') : 'why_rival'; html += '<p class="mut">' + T(why) + '</p>'; }
+    if (!win && mr !== 'draw') { var why = res.why === 'lives' ? (p.lives <= 0 ? 'why_lives' : 'why_rlives') : 'why_rival'; html += '<p class="mut">' + T(why) + '</p>'; }
     else if (res.why === 'lives' && r) html += '<p class="mut">' + T('why_rlives') + '</p>';
     html += '<div style="text-align:start;margin-top:8px"><div class="stat"><span>' + T('res_area') + '</span><b>' + pc(E.pct(S, p)) + '</b></div>';
     if (r) html += '<div class="stat"><span>' + T('res_rival') + '</span><b>' + pc(E.pct(S, r)) + '</b></div><div class="stat"><span>' + T('res_cuts') + '</span><b><bdi>' + p.cuts + '</bdi></b></div>';
@@ -1797,11 +2174,12 @@ var G = (function () {
     html += '<div class="btns">';
     var hasNext = meta.mode === 'level' && win && meta.n < 60;
     if (hasNext) html += '<button class="btn pri" id="rN">▶ ' + T('next') + '</button>';
-    html += '<button class="btn ' + (hasNext ? '' : 'pri') + '" id="rA">↻ ' + T('retry') + '</button><button class="btn" id="rH">' + T('home') + '</button></div>';
+    if (role === 'guest') html += '<p class="mut">' + T('on_wait_host') + '</p><button class="btn" id="rH">' + T('on_back_room') + '</button></div>';
+    else html += '<button class="btn ' + (hasNext ? '' : 'pri') + '" id="rA">↻ ' + T('retry') + '</button><button class="btn" id="rH">' + (role ? T('on_back_room') : T('home')) + '</button></div>';
     var m = modal(html, { dismiss: false, onBack: function () { closeModal(m); quit(); } });
     if (hasNext) m.el.querySelector('#rN').onclick = function () { closeModal(m); meta = { mode: 'level', n: meta.n + 1 }; start(E.levelCfg(meta.n), meta); };
-    m.el.querySelector('#rA').onclick = function () { closeModal(m); if (meta.mode === 'duel') meta.seed = (Math.random() * 1e9) | 0; restart(); };
-    m.el.querySelector('#rH').onclick = function () { closeModal(m); quit(); nav = ['home']; show('home'); };
+    var rA = m.el.querySelector('#rA'); if (rA) rA.onclick = function () { closeModal(m); if (meta.mode === 'duel') meta.seed = (Math.random() * 1e9) | 0; restart(); };
+    m.el.querySelector('#rH').onclick = function () { closeModal(m); if (role) { quit(); return; } quit(); nav = ['home']; show('home'); };
     var now = totalStars();
     SKINS.forEach(function (s) { if (s.need > prevStars && s.need <= now) setTimeout(function () { snack(T('new_skin', { s: T('sk_' + s.id) }), 3000); }, 600); });
   }
@@ -1830,11 +2208,99 @@ var G = (function () {
       else if (k === 'p' || k === 'P' || k === 'Escape') pause();
     });
     $('gPause').onclick = function () { pause(); };
+    var gt = $('gTalk');
+    gt.addEventListener('pointerdown', function (e) { e.preventDefault(); if (Net.link) { Net.link.talk(true); gt.classList.add('dn'); } });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (k) { gt.addEventListener(k, function () { if (Net.link) Net.link.talk(false); gt.classList.remove('dn'); }); });
     var sb = $('shootBtn'); sb.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); ac(); shootIn(); });
-    document.addEventListener('visibilitychange', function () { if (document.hidden && cur() === 'game' && S && !S.over && !paused && started) pause(); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden && cur() === 'game' && S && !S.over && !paused && started && !role) pause(); });
   }
-  return { start: start, setupInput: setupInput, pauseMenu: function () { if (S && S.over) { quit(); return; } pause(); }, state: function () { return S; } };
+  return { start: start, onNet: onNet, get role() { return role; }, setupInput: setupInput, pauseMenu: function () { if (S && S.over) { quit(); return; } pause(); }, state: function () { return S; } };
 })();
+/* ───── online (NestLink) ───── */
+var Net = {
+  link: null, status: 'off', roster: [], lastFail: null, guestSkin: null,
+  ensure: function () {
+    if (this.link) return this.link;
+    var self = this;
+    this.link = NestLink.create({
+      app: 'snakenest', version: APP_VERSION, maxPlayers: 2,
+      name: function () { return D.set.name || ''; },
+      persist: function (sess) { try { store.set('sk_net', JSON.stringify(sess)); } catch (e) {} },
+      onStatus: function (st) {
+        self.status = st;
+        if (['notfound', 'full', 'error'].indexOf(st) >= 0) { self.lastFail = st; setTimeout(function () { if (self.status === st) { self.leave(); self.render(); } }, 0); }
+        else if (st === 'open') { self.lastFail = null; if (self.link && self.link.session && self.link.session.role === 'guest') self.send({ k: 'skin', s: D.skin }); }
+        self.render();
+      },
+      onRoster: function (r) { self.roster = r; self.render(); },
+      onMessage: function (m) { self.onMessage(m); },
+      onEmoji: function (e) { snack(e, 1200); },
+      onTalk: function (seat, on) { var el = $('talking'), p = self.roster.filter(function (x) { return x.seat === seat; })[0]; var txt = on ? '🎙 ' + T('v_talking', { n: (p && p.name) || T('friend') }) : ''; if (el) el.textContent = txt; var g = $('gTalkInfo'); if (g) g.textContent = on ? '🎙' : ''; },
+      onVoiceMsg: function (url, sec, seat, mine) { if (!mine) { try { var a = new Audio(url); a.play().catch(function () { snack('🔈 ' + T('v_tap'), 4000); }); } catch (e) {} } },
+      onMicError: function () { snack(T('v_denied')); },
+      onVersion: function () { snack(T('on_ver'), 4000); },
+      onCode: function () { self.render(); }
+    });
+    return this.link;
+  },
+  send: function (m) { if (this.link) try { this.link.send(m); } catch (e) {} },
+  onMessage: function (m) {
+    if (!m) return;
+    if (m.k === 'start') { this.begin(m, 'guest'); return; }
+    if (m.k === 'skin') { this.guestSkin = m.s; return; }
+    G.onNet(m);
+  },
+  isHost: function () { return !!(this.link && this.link.session && this.link.session.role === 'host'); },
+  host: function () { this.lastFail = null; this.ensure().host(); this.render(); },
+  join: function (code) { this.lastFail = null; this.ensure().join(code); this.render(); },
+  leave: function () { if (this.link) { try { this.link.close(); } catch (e) {} this.link = null; } store.del('sk_net'); this.status = 'off'; this.roster = []; this.guestSkin = null; },
+  startGame: function () {
+    if (!this.isHost()) return;
+    var un = unlockedPics(), seed = (Math.random() * 1e9) | 0;
+    var m = { k: 'start', seed: seed, world: 1 + (seed % 6), pic: un.length ? un[seed % un.length] : 'l' + ((seed % 9) + 1 < 10 ? '0' : '') + ((seed % 9) + 1), skins: [D.skin, this.guestSkin || 'green'] };
+    this.send(m); this.begin(m, 'host');
+  },
+  begin: function (m, role) {
+    var c = E.duelCfg(2, m.seed); c.world = m.world; c.rival = 1;
+    G.start(c, { mode: 'online', role: role, seed: m.seed, pic: m.pic, skins: m.skins });
+  },
+  render: function () { if (cur() === 'online') RENDER.online(); }
+};
+function renderOnline() {
+  var L = Net.link, st = Net.status, sess = L && L.session, isHost = sess && sess.role === 'host', active = sess && st !== 'off', h = '';
+  if (!active) {
+    h += '<div class="card" style="text-align:center"><div style="font-size:46px">⚔️🐍</div><p style="line-height:1.55;margin:6px 0 0">' + T('on_desc') + '</p></div>';
+    h += '<button class="btn pri" id="nHost">🏠 ' + T('on_host') + '</button>';
+    h += '<div class="card" style="margin-top:12px"><label style="font-weight:700;display:block;margin-bottom:8px">' + T('on_join') + '</label><div class="row"><input id="nCode" maxlength="5" autocapitalize="characters" placeholder="' + T('on_enter') + '" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--txt);font:inherit;text-transform:uppercase;letter-spacing:6px;text-align:center;direction:ltr"><button class="btn sm" id="nJoin">➜</button></div></div>';
+    if (['notfound', 'full', 'error'].indexOf(Net.lastFail) >= 0) h += '<div class="card" style="color:var(--bad)">' + T('on_' + (Net.lastFail === 'error' ? 'err' : Net.lastFail)) + '</div>';
+    var ow = D.online || { w: 0, l: 0 }; if (ow.w || ow.l) h += '<p class="mut" style="text-align:center">🏆 <bdi>' + ow.w + '</bdi> · 💀 <bdi>' + ow.l + '</bdi></p>';
+  } else {
+    var seats = Net.roster.length ? Net.roster : [{ seat: 0, name: '', online: true }];
+    var stText = { connecting: T('on_connecting'), waiting: T('on_waiting'), open: T('on_open'), reconnecting: T('on_reconn') }[st] || '';
+    h += '<div class="card" style="text-align:center"><div class="mut">' + T('on_code') + '</div><div class="ncode" dir="ltr">' + esc(sess.code || '') + '</div>';
+    if (isHost) h += '<div class="row" style="margin-top:10px"><button class="btn sm" id="nWa" style="flex:1">💬 ' + T('on_invite') + '</button><button class="btn sm" id="nCp" style="flex:1">🔗 ' + T('on_copy') + '</button></div>';
+    h += '</div><div class="card">';
+    seats.forEach(function (p) { h += '<div class="seat"><span class="dot ' + (p.online ? 'on' : '') + '"></span><b>' + esc(p.name || (p.seat === 0 ? T('seat_host') : T('seat_guest'))) + '</b><span class="mut">' + (p.seat === 0 ? T('seat_host') : T('seat_guest')) + (p.voice ? ' 🎙' : '') + '</span></div>'; });
+    if (seats.length < 2) h += '<div class="seat" style="opacity:.6"><span class="dot"></span>' + T('seat_empty') + '</div>';
+    h += '<p class="mut" style="margin:8px 0 0">' + stText + '</p></div>';
+    if (isHost) h += '<button class="btn pri" id="nStart" ' + (st === 'open' && Net.roster.filter(function (p) { return p.online; }).length >= 2 ? '' : 'disabled') + '>⚔️ ' + T('on_start') + '</button>';
+    else h += '<p class="mut" style="text-align:center">' + T('on_wait_host') + '</p>';
+    h += '<div class="voice"><button id="vPtt">🎙 ' + T('v_ptt') + '</button><button id="vOpen" class="' + (L.openMic ? 'dn' : '') + '">🔓 ' + T('v_open') + '</button><button id="vRec">⏺ ' + T('v_msg') + '</button></div><p class="mut" id="talking" style="text-align:center;min-height:18px"></p><p class="mut" style="text-align:center;font-size:12px">' + T('v_privacy') + '</p>';
+    h += '<button class="btn bad" id="nLeave" style="margin-top:6px">' + T('on_leave') + '</button>';
+  }
+  $('onBody').innerHTML = h;
+  var q = function (id) { return document.getElementById(id); };
+  if (q('nHost')) q('nHost').onclick = function () { ac(); Net.host(); };
+  if (q('nJoin')) q('nJoin').onclick = function () { var c = q('nCode').value.trim(); if (c.length >= 4) { ac(); Net.join(c); } };
+  if (q('nWa')) q('nWa').onclick = function () { openUrl('https://wa.me/?text=' + encodeURIComponent('SnakeNest ⚔️🐍 ' + T('on_inv_txt') + '\n' + Net.link.inviteURL())); };
+  if (q('nCp')) q('nCp').onclick = function () { try { navigator.clipboard.writeText(Net.link.inviteURL()); snack(T('on_copied')); } catch (e) { snack(Net.link.inviteURL(), 5000); } };
+  if (q('nStart')) q('nStart').onclick = function () { ac(); Net.startGame(); };
+  if (q('nLeave')) q('nLeave').onclick = function () { Net.leave(); renderOnline(); };
+  var ptt = q('vPtt'), op = q('vOpen'), rec = q('vRec');
+  if (ptt) { ptt.addEventListener('pointerdown', function (e) { e.preventDefault(); ptt.classList.add('dn'); L.talk(true); }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (k) { ptt.addEventListener(k, function () { ptt.classList.remove('dn'); L.talk(false); }); }); }
+  if (op) op.onclick = function () { var on = !L.openMic; Promise.resolve(L.setOpenMic(on)).then(function (ok) { op.classList.toggle('dn', on && ok); }); };
+  if (rec) { rec.addEventListener('pointerdown', function (e) { e.preventDefault(); rec.classList.add('dn'); L.recStart(20); }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (k) { rec.addEventListener(k, function () { rec.classList.remove('dn'); L.recStop(); }); }); }
+};
 function fmtT(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60); }
 function today() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
 function prevDay(n) { var d = new Date(Math.floor(n / 10000), Math.floor(n / 100) % 100 - 1, n % 100 - 1); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
@@ -1849,6 +2315,7 @@ function rulesModal() { var m = modal('<h3>' + T('r_title') + '</h3><div class="
 
 /* ───── screens ───── */
 var RENDER = {
+  online: function () { renderOnline(); },
   home: function () {
     var ts = totalStars();
     $('hLvSub').innerHTML = '★ <bdi>' + ts + ' / 180</bdi>';
@@ -1856,6 +2323,7 @@ var RENDER = {
     $('hDuelSub').textContent = T('wins', { n: w });
     $('hDailySub').textContent = (D.daily.date === today() && D.daily.done) ? T('daily_done') : (D.daily.streak ? T('streak', { n: D.daily.streak }) : '');
     $('hSkinSub').textContent = T('sk_' + D.skin);
+    var ow = D.online || { w: 0, l: 0 }; $('hOnSub').textContent = T('on_sub');
     $('hGalSub').innerHTML = '🖼️ <bdi>' + unlockedPics().length + ' / 80</bdi>';
     music.play(0.5);
   },
@@ -1991,7 +2459,7 @@ function renderAbout() {
   var h = '<div class="card" style="text-align:center"><img class="abicon" src="icon-192.png" alt=""><h2 style="margin:0">SnakeNest</h2><div class="mut">v<bdi>' + APP_VERSION + '</bdi></div></div>';
   h += '<div class="card"><div class="kv"><span>' + T('ab_version') + '</span><bdi>' + APP_VERSION + '</bdi></div><div class="kv"><span>' + T('ab_dev') + '</span><span>Barak Aflalo</span></div><div class="kv"><span>' + T('ab_platform') + '</span><span>PWA · HTML5</span></div><div class="kv"><span>' + T('ab_storage') + '</span><span>' + T('ab_storage_v') + '</span></div><div class="kv"><span>' + T('ab_license') + '</span><span>© AppNest 2026</span></div></div>';
   h += '<div style="display:grid;gap:9px"><button class="btn" id="aStore">🏪 ' + T('ab_store') + '</button><button class="btn" id="aShare">📤 ' + T('ab_share') + '</button><button class="btn" id="aFb">✉️ ' + T('ab_feedback') + '</button><button class="btn" id="aGuide">📖 ' + T('ab_guide') + '</button><button class="btn" id="aPriv">🔒 ' + T('ab_privacy') + '</button></div>';
-  h += '<div class="card" style="margin-top:12px"><b>' + T('ab_credits') + '</b><div class="mut" dir="ltr" style="text-align:left;line-height:1.6;margin-top:6px;font-size:13px">Game design, code, creatures &amp; world: Barak Aflalo · AppNest<br>World &amp; daily paintings, snakes, creatures, bosses, bonuses, sea materials, map, home screen &amp; icon: created for SnakeNest with AI image generation (Barak Aflalo)<br>Music: “Ancient Power of Serpents” by Kevin MacLeod, public domain (CC0)</div></div>';
+  h += '<div class="card" style="margin-top:12px"><b>' + T('ab_credits') + '</b><div class="mut" dir="ltr" style="text-align:left;line-height:1.6;margin-top:6px;font-size:13px">Game design, code, creatures &amp; world: Barak Aflalo · AppNest<br>World &amp; daily paintings, snakes, creatures, bosses, bonuses, sea materials, map, home screen &amp; icon: created for SnakeNest with AI image generation (Barak Aflalo)<br>Music: “Ancient Power of Serpents” by Kevin MacLeod, public domain (CC0)<br>Online play: NestLink (AppNest) over PeerJS (MIT)</div></div>';
   h += '<p class="mut" style="text-align:center;margin-top:16px;line-height:1.5">' + T('ab_disc') + '</p>';
   $('abBody').innerHTML = h;
   $('aStore').onclick = function () { openUrl('https://appnest-store.pages.dev/'); };
@@ -2027,10 +2495,11 @@ $('hAbout').onclick = function () { sfx.click(); go('about'); };
 $('duelGo').onclick = function () { sfx.click(); var seed = (Math.random() * 1e9) | 0; G.start(E.duelCfg(D.duelSel, seed), { mode: 'duel', bot: D.duelSel, seed: seed }); };
 $('dailyGo').onclick = function () { sfx.click(); var d = today(); G.start(E.dailyCfg(d), { mode: 'daily', date: d }); };
 G.setupInput();
+(function () { var qj = new URLSearchParams(location.search).get('join'); if (qj) { D.tut = true; setTimeout(function () { go('online'); Net.join(qj); try { var sp = new URLSearchParams(location.search); sp.delete('join'); history.replaceState(history.state, '', location.pathname + (sp.toString() ? '?' + sp : '')); } catch (e) {} }, 60); } })();
 applyTheme(); applyLang(); show('home'); syncHistory();
 if (!D.tut) setTimeout(tutorial, 400);
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
-window.__sk = { D: D, G: G, E: E, T: T, go: go, back: goBack, nav: function () { return nav; }, modals: function () { return modals.length; } };
+window.__sk = { Net: Net, D: D, G: G, E: E, T: T, go: go, back: goBack, nav: function () { return nav; }, modals: function () { return modals.length; } };
 })();
 </script>
 </body>
