@@ -177,6 +177,8 @@ body.pad-on .pad{display:grid}
 body.pad-on .shoot{display:none!important}
 @keyframes pop{from{transform:scale(.4)}to{transform:scale(1)}}
 #padFire:disabled{opacity:.35}
+
+.shoot img{width:52px;height:52px;pointer-events:none}
 </style>
 </head>
 <body>
@@ -1078,7 +1080,7 @@ ar: {
 <script>/* SnakeNest app shell + renderer */
 (function () {
 'use strict';
-var APP_VERSION = '0.5.0';
+var APP_VERSION = '0.5.1';
 var E = window.SNE;
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'sk_data';
@@ -1249,7 +1251,8 @@ document.addEventListener('visibilitychange', function () { if (document.hidden)
 
 /* ───── skins & assets ───── */
 function loadImg(src, cb) { var im = new Image(); im.onload = function () { im.ok = true; if (cb) cb(im); }; im.src = src; return im; }
-var IMG = { w: {}, items: { apple: loadImg('img/item-speed.webp'), gapple: loadImg('img/item-freeze.webp'), bomb: loadImg('img/item-bomb.webp'), egg: loadImg('img/item-life.webp') } };
+var IMG = { w: {}, items: { apple: loadImg('img/item-speed.webp'), gapple: loadImg('img/item-freeze.webp'), bomb: loadImg('img/item-bomb.webp'), egg: loadImg('img/item-life.webp'), venom: loadImg('img/ammo-venom.webp'), fire: loadImg('img/ammo-fire.webp'), ice: loadImg('img/ammo-ice.webp'), bolt: loadImg('img/ammo-bolt.webp') }, shots: {} };
+['venom', 'fire', 'ice', 'bolt', 'spit'].forEach(function (k) { IMG.shots[k] = loadImg('img/shot-' + k + '.webp'); });
 function worldArt(w) {
   w = Math.max(1, Math.min(6, w || 1));
   if (!IMG.w[w]) IMG.w[w] = { sea: loadImg('img/sea' + w + '.webp'), land: loadImg('img/land' + w + '.webp'), boss: loadImg('img/boss' + w + '.webp'), seat: loadImg('img/seat' + w + '.jpg'), pat: null, patCs: 0 };
@@ -1494,6 +1497,14 @@ function drawShots(x, V, S, t) {
   var cs = V.cs;
   for (var i = 0; i < S.shots.length; i++) {
     var p = S.shots[i], px = p.x * cs, py = p.y * cs, c = SHOT_COL[p.type] || SHOT_COL.venom, sp = Math.hypot(p.vx, p.vy) || 1, ux = p.vx / sp, uy = p.vy / sp;
+    var sim = IMG.shots[p.type];
+    if (sim && sim.ok) {
+      var sw = cs * (p.type === 'spit' ? 1.9 : 1.5), sh = sw * 2;
+      var gl = x.createRadialGradient(px, py, 0, px, py, sw); gl.addColorStop(0, c[1]); gl.addColorStop(1, 'rgba(0,0,0,0)');
+      x.globalAlpha = .45; x.fillStyle = gl; x.beginPath(); x.arc(px, py, sw, 0, 6.283); x.fill(); x.globalAlpha = 1;
+      x.save(); x.translate(px, py); x.rotate(Math.atan2(uy, ux) + Math.PI / 2); x.drawImage(sim, -sw / 2, -sh * .22, sw, sh); x.restore();
+      continue;
+    }
     if (p.type === 'bolt') {
       x.strokeStyle = c[1]; x.lineWidth = cs * .35; x.lineCap = 'round'; x.beginPath(); x.moveTo(px - ux * cs * 2.2, py - uy * cs * 2.2);
       for (var k = 1; k <= 4; k++) { var f = k / 4, j = (k % 2 ? 1 : -1) * cs * .45; x.lineTo(px - ux * cs * 2.2 * (1 - f) - uy * j, py - uy * cs * 2.2 * (1 - f) + ux * j); }
@@ -1733,7 +1744,7 @@ var G = (function () {
     right = '❤️'.repeat(Math.max(0, Math.min(p.lives, 6)));
     if (r && cfg.duel) right += ' 💜' + Math.max(0, r.lives);
     var sb = $('shootBtn'), am = p.ammoN > 0 ? p.ammo : '';
-    if (sb._k !== am + p.ammoN) { sb._k = am + p.ammoN; sb.classList.toggle('on', !!am); sb.className = 'shoot' + (am ? ' on am-' + am : ''); sb.innerHTML = am ? AMMO_IC[am] + '<b>' + p.ammoN + '</b>' : ''; var pf = $('padFire'); if (pf) { pf.innerHTML = am ? AMMO_IC[am] : '🎯'; pf.disabled = !am; } }
+    if (sb._k !== am + p.ammoN) { sb._k = am + p.ammoN; sb.classList.toggle('on', !!am); sb.className = 'shoot' + (am ? ' on am-' + am : ''); sb.innerHTML = am ? '<img src="img/ammo-' + am + '.webp" alt=""><b>' + p.ammoN + '</b>' : ''; var pf = $('padFire'); if (pf) { pf.innerHTML = am ? '<img src="img/ammo-' + am + '.webp" alt="" style="width:34px;height:34px">' : '🎯'; pf.disabled = !am; } }
     var key = label + mid + right + p.area + (r ? r.area : 0) + (S.boss ? S.boss.region : 0);
     if (key === lastHud) return; lastHud = key;
     $('gL').textContent = label; $('gM').innerHTML = '<bdi>' + esc(mid) + '</bdi>'; $('gR').textContent = right;

@@ -20,7 +20,7 @@ CacheStorage.prototype.match=function(){return sm.apply(this,arguments).then(cle
 })();
 
 /* SnakeNest service worker — cache name comes from the app version (set by build.py) */
-var VERSION = 'snakenest-0.5.0';
+var VERSION = 'snakenest-0.5.1';
 var SHELL = ['./', './manifest.json', './icon-192.png', './icon-512.png', './privacy_policy.html', './img/home-bg.jpg'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(VERSION).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));
