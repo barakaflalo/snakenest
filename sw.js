@@ -20,8 +20,8 @@ CacheStorage.prototype.match=function(){return sm.apply(this,arguments).then(cle
 })();
 
 /* SnakeNest service worker — cache name comes from the app version (set by build.py) */
-var VERSION = 'snakenest-0.1.0';
-var SHELL = ['./', './manifest.json', './icon-192.png', './icon-512.png', './privacy_policy.html'];
+var VERSION = 'snakenest-0.2.0';
+var SHELL = ['./', './manifest.json', './icon-192.png', './icon-512.png', './privacy_policy.html', './img/sprites.png', './img/cobra_blue.png', './img/cobra_red.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(VERSION).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));
 });
@@ -30,7 +30,7 @@ self.addEventListener('activate', function (e) {
 });
 self.addEventListener('fetch', function (e) {
   var req = e.request; if (req.method !== 'GET') return;
-  var url = new URL(req.url); if (url.origin !== location.origin) return;
+  var url = new URL(req.url); if (url.origin !== location.origin || /\.(ogg|mp3)$/.test(url.pathname)) return;
   if (req.mode === 'navigate') {
     // network-first for the app page, cache fallback offline
     e.respondWith(fetch(req).then(function (r) {
