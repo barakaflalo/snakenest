@@ -1455,7 +1455,7 @@ ar: {
 <script>/* SnakeNest app shell + renderer */
 (function () {
 'use strict';
-var APP_VERSION = '0.7.1';
+var APP_VERSION = '0.8.0';
 var E = window.SNE;
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'sk_data';
@@ -1613,16 +1613,18 @@ function picImg(name, cb) {
 function lvPic(n) { return 'l' + (n < 10 ? '0' : '') + n; }
 function unlockedPics() { return Object.keys(D.pics || {}); }
 var music = (function () {
-  var a = null, want = 0;
-  function el() { if (!a) { a = new Audio('img/music.ogg'); a.loop = true; a.preload = 'auto'; } return a; }
+  var a = null, want = 0, src = 'music';
+  function el() { if (!a) { a = new Audio(); a.loop = true; a.preload = 'auto'; } var u = 'img/' + src + '.ogg'; if (a.getAttribute('src') !== u) { a.src = u; } return a; }
   return {
-    play: function (v) { if (v != null) want = v; if (!D.set.music || !want) { if (a) a.pause(); return; } var e = el(); e.volume = want; var pr = e.play(); if (pr && pr.catch) pr.catch(function () {}); },
+    play: function (v, name) { if (v != null) want = v; if (name) src = name; else if (v != null) src = 'music'; if (!D.set.music || !want) { if (a) a.pause(); return; } var e = el(); e.volume = want; var pr = e.play(); if (pr && pr.catch) pr.catch(function () {}); },
+    resume: function () { if (!D.set.music || !want) return; var e = el(); e.volume = want; var pr = e.play(); if (pr && pr.catch) pr.catch(function () {}); },
     stop: function () { if (a) a.pause(); },
     vol: function (v) { want = v; if (a) a.volume = v; }
   };
 })();
-document.addEventListener('pointerdown', function first() { music.play(cur() === 'game' ? 0.28 : 0.5); document.removeEventListener('pointerdown', first, true); }, true);
-document.addEventListener('visibilitychange', function () { if (document.hidden) music.stop(); else music.play(); });
+function gameTrack(cfg, m) { return cfg.boss ? 'mus-boss' : (m.mode === 'duel' || m.mode === 'online') ? 'mus-duel' : 'mus-w' + Math.max(1, Math.min(6, cfg.world || 1)); }
+document.addEventListener('pointerdown', function first() { music.resume(); document.removeEventListener('pointerdown', first, true); }, true);
+document.addEventListener('visibilitychange', function () { if (document.hidden) music.stop(); else music.resume(); });
 
 /* ───── skins & assets ───── */
 function loadImg(src, cb) { var im = new Image(); im.onload = function () { im.ok = true; if (cb) cb(im); }; im.src = src; return im; }
@@ -2071,7 +2073,7 @@ var G = (function () {
     $('gBar').classList.toggle('swap', me === 1);
     V = makeView(); q = []; stopReq = false; started = false; paused = false; endShown = false; acc = 0; t = 0; endT = 0; lastHud = '';
     meta.pic = picFor(meta); V.pic = picImg(meta.pic, function () { V.lver = -1; });
-    music.play(0.28);
+    music.play(0.42, gameTrack(cfg, m));
     cv = $('cv');
     if (cur() !== 'game') go('game'); else show('game');
     $('hint').innerHTML = esc(T('hint_start')) + (D.set.ctrl === 'swipe' ? '<small>' + esc(T('hint_tap')) + '</small>' : '');
@@ -2547,7 +2549,7 @@ document.addEventListener('click', function (e) {
   var b = e.target.closest('[data-lang]'); if (b) { D.set.lang = b.getAttribute('data-lang'); save(); applyLang(); renderSettings(); return; }
   b = e.target.closest('[data-theme]'); if (b) { D.set.theme = b.getAttribute('data-theme'); save(); applyTheme(); renderSettings(); return; }
   b = e.target.closest('[data-ctrl]'); if (b) { D.set.ctrl = b.getAttribute('data-ctrl'); save(); applyTheme(); renderSettings(); return; }
-  b = e.target.closest('[data-tog]'); if (b) { var k = b.getAttribute('data-tog'); D.set[k] = !D.set[k]; save(); b.classList.toggle('on', D.set[k]); if (k === 'sound' && D.set.sound) sfx.click(); if (k === 'vib') vib(30); if (k === 'music') { if (D.set.music) music.play(0.5); else music.stop(); } }
+  b = e.target.closest('[data-tog]'); if (b) { var k = b.getAttribute('data-tog'); D.set[k] = !D.set[k]; save(); b.classList.toggle('on', D.set[k]); if (k === 'sound' && D.set.sound) sfx.click(); if (k === 'vib') vib(30); if (k === 'music') { if (D.set.music) music.resume(); else music.stop(); } }
 });
 function exportBackup() {
   var data = JSON.stringify({ app: 'snakenest', version: APP_VERSION, user: D.set.name || '', date: new Date().toISOString(), data: D }, null, 1);
@@ -2569,7 +2571,7 @@ function renderAbout() {
   var h = '<div class="card" style="text-align:center"><img class="abicon" src="icon-192.png" alt=""><h2 style="margin:0">SnakeNest</h2><div class="mut">v<bdi>' + APP_VERSION + '</bdi></div></div>';
   h += '<div class="card"><div class="kv"><span>' + T('ab_version') + '</span><bdi>' + APP_VERSION + '</bdi></div><div class="kv"><span>' + T('ab_dev') + '</span><span>Barak Aflalo</span></div><div class="kv"><span>' + T('ab_platform') + '</span><span>PWA · HTML5</span></div><div class="kv"><span>' + T('ab_storage') + '</span><span>' + T('ab_storage_v') + '</span></div><div class="kv"><span>' + T('ab_license') + '</span><span>© AppNest 2026</span></div></div>';
   h += '<div style="display:grid;gap:9px"><button class="btn" id="aStore">🏪 ' + T('ab_store') + '</button><button class="btn" id="aShare">📤 ' + T('ab_share') + '</button><button class="btn" id="aFb">✉️ ' + T('ab_feedback') + '</button><button class="btn" id="aGuide">📖 ' + T('ab_guide') + '</button><button class="btn" id="aPriv">🔒 ' + T('ab_privacy') + '</button></div>';
-  h += '<div class="card" style="margin-top:12px"><b>' + T('ab_credits') + '</b><div class="mut" dir="ltr" style="text-align:left;line-height:1.6;margin-top:6px;font-size:13px">Game design, code, creatures &amp; world: Barak Aflalo · AppNest<br>World &amp; daily paintings, snakes, creatures, bosses, bonuses, sea materials, map, home screen &amp; icon: created for SnakeNest with AI image generation (Barak Aflalo)<br>Music: “Ancient Power of Serpents” by Kevin MacLeod, public domain (CC0)<br>Online play: NestLink (AppNest) over PeerJS (MIT)</div></div>';
+  h += '<div class="card" style="margin-top:12px"><b>' + T('ab_credits') + '</b><div class="mut" dir="ltr" style="text-align:left;line-height:1.6;margin-top:6px;font-size:13px">Game design, code, creatures &amp; world: Barak Aflalo · AppNest<br>World &amp; daily paintings, snakes, creatures, bosses, bonuses, sea materials, map, home screen &amp; icon: created for SnakeNest with AI image generation (Barak Aflalo)<br>Music: “Ancient Power of Serpents” by Kevin MacLeod (menu) · “Desert Zone” · “Revenge of the Jungle” · “Evil Temple” by HaelDB · “Mystical Outpost” by Urban Brometheus · “Frozen Jungle” by Komiku · “King Crumble” · “Epic Boss Battle” by Juhani Junkala · “Battle RPG Theme” by CleytonRX — via OpenGameArt.org (CC0)<br>Online play: NestLink (AppNest) over PeerJS (MIT)</div></div>';
   h += '<p class="mut" style="text-align:center;margin-top:16px;line-height:1.5">' + T('ab_disc') + '</p>';
   $('abBody').innerHTML = h;
   $('aStore').onclick = function () { openUrl('https://appnest-store.pages.dev/'); };
