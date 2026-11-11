@@ -37,17 +37,18 @@ body.th-day .btn.pri{color:#fff}
 .row{display:flex;gap:10px;align-items:center}
 .mut{color:var(--mut);font-size:14px}
 /* home */
-#home{background:#04121c}
+#home{background:#05070a url(img/home-bg.jpg) center top/cover no-repeat}
+#homeCv{display:none}
 #homeCv{position:absolute;inset:0;width:100%;height:100%;opacity:.55}
-.hwrap{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(0,0,0,.65),rgba(0,0,0,.25) 40%,rgba(0,0,0,.75))}
+.hwrap{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;overflow:auto;padding:calc(12px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,0) 25%,rgba(0,0,0,.35) 45%,rgba(0,0,0,.6))}
 body.th-day .hwrap{background:linear-gradient(180deg,rgba(246,241,230,.85),rgba(246,241,230,.35) 40%,rgba(246,241,230,.9))}
 .htop{display:flex;justify-content:space-between;gap:8px}
 .htop .grp{display:flex;gap:8px}
-.logo{text-align:center;margin:4vh 0 2vh}
+.logo{text-align:center;margin:27vh 0 2vh}
 .logo h1{margin:0;font-size:46px;letter-spacing:.5px;font-weight:900;background:linear-gradient(90deg,var(--acc2),var(--acc));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 10px rgba(0,0,0,.6))}
 .logo p{margin:6px 0 0;color:var(--txt);opacity:.85;font-size:15px}
-.menu{display:grid;gap:11px;margin-top:auto;margin-bottom:auto;max-width:460px;width:100%;align-self:center}
-.mb{display:flex;align-items:center;gap:14px;padding:15px 16px;border-radius:18px;border:1px solid var(--acc);background:rgba(10,10,14,.72);backdrop-filter:blur(4px);font-size:19px;font-weight:800;text-align:start}
+.menu{display:grid;gap:9px;margin-bottom:auto;max-width:460px;width:100%;align-self:center}
+.mb{display:flex;align-items:center;gap:14px;padding:11px 16px;border-radius:18px;border:1px solid var(--acc);background:rgba(10,10,14,.72);backdrop-filter:blur(4px);font-size:19px;font-weight:800;text-align:start}
 body.th-day .mb{background:rgba(255,253,248,.85)}
 .mb.pri{background:var(--acc);color:#111}
 body.th-day .mb.pri{color:#fff}
@@ -972,7 +973,7 @@ ar: {
 <script>/* SnakeNest app shell + renderer */
 (function () {
 'use strict';
-var APP_VERSION = '0.4.1';
+var APP_VERSION = '0.4.2';
 var E = window.SNE;
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'sk_data';
@@ -1040,7 +1041,7 @@ function show(id) {
   document.querySelectorAll('.screen').forEach(function (s) { s.classList.toggle('on', s.id === id); });
   if (RENDER[id]) RENDER[id]();
   refreshBackLabels();
-  if (id === 'home') demo.start(); else demo.stop();
+  demo.stop();
 }
 function go(id) { if (cur() === id) return; nav.push(id); show(id); syncHistory(); }
 function refreshBackLabels() {
@@ -1143,7 +1144,7 @@ document.addEventListener('visibilitychange', function () { if (document.hidden)
 
 /* ───── skins & assets ───── */
 function loadImg(src, cb) { var im = new Image(); im.onload = function () { im.ok = true; if (cb) cb(im); }; im.src = src; return im; }
-var IMG = { sp: loadImg('img/sprites.png', function () { SKC = {}; }), w: {} };
+var IMG = { w: {}, items: { apple: loadImg('img/item-speed.webp'), gapple: loadImg('img/item-freeze.webp'), bomb: loadImg('img/item-bomb.webp'), egg: loadImg('img/item-life.webp') } };
 function worldArt(w) {
   w = Math.max(1, Math.min(6, w || 1));
   if (!IMG.w[w]) IMG.w[w] = { sea: loadImg('img/sea' + w + '.webp'), land: loadImg('img/land' + w + '.webp'), boss: loadImg('img/boss' + w + '.webp'), seat: loadImg('img/seat' + w + '.jpg'), pat: null, patCs: 0 };
@@ -1159,19 +1160,8 @@ function skinImgs(sk) {
   if (!sk.im) { var id = sk.rival ? 'rival' : sk.id, f = function (p) { return loadImg('img/sk-' + id + '-' + p + '.webp'); }; sk.im = { head: f('head'), body: f('body'), tail: f('tail'), dead: f('dead') }; }
   return sk.im;
 }
-var SKC = {};
-function skinSprites(sk) {
-  if (!IMG.sp.ok) return null;
-  if (SKC[sk.id]) return SKC[sk.id];
-  var c = document.createElement('canvas'); c.width = 64 * 4; c.height = 64;
-  var x = c.getContext('2d'), base = sk.rival ? [3, 4, 5, 7] : [0, 1, 2, 6];
-  if (sk.f) x.filter = sk.f;
-  base.forEach(function (k, i) { x.drawImage(IMG.sp, k * 64, 0, 64, 64, i * 64, 0, 64, 64); });
-  SKC[sk.id] = c; return c;
-}
 function skinById(id) { for (var i = 0; i < SKINS.length; i++) if (SKINS[i].id === id) return SKINS[i]; return SKINS[0]; }
 function totalStars() { var n = 0; for (var k in D.stars) n += D.stars[k]; return n; }
-var ITEM_IX = { apple: 8, gapple: 9, bomb: 10, egg: 11 };
 
 /* ───── renderer ───── */
 function hash(i) { i = Math.imul(i ^ 0x9e3779b9, 0x85ebca6b); i ^= i >>> 13; i = Math.imul(i, 0xc2b2ae35); return ((i ^ (i >>> 16)) >>> 0) / 4294967296; }
@@ -1384,7 +1374,7 @@ function drawItem(x, V, it, t) {
   var col = it.type === 'apple' ? '255,80,80' : it.type === 'gapple' ? '120,255,140' : it.type === 'bomb' ? '255,200,80' : '120,200,255';
   var g = x.createRadialGradient(ix, iy, 0, ix, iy, s * .9 * pulse); g.addColorStop(0, 'rgba(' + col + ',.55)'); g.addColorStop(1, 'rgba(' + col + ',0)');
   x.fillStyle = g; x.beginPath(); x.arc(ix, iy, s * .9 * pulse, 0, 6.283); x.fill();
-  if (IMG.sp.ok) x.drawImage(IMG.sp, ITEM_IX[it.type] * 64, 0, 64, 64, ix - s / 2, iy - s / 2, s, s);
+  var iim = IMG.items[it.type]; if (iim && iim.ok) x.drawImage(iim, ix - s * .6, iy - s * .6, s * 1.2, s * 1.2);
 }
 
 function drawField(cv, V, S, sk, t, dt, game) {
@@ -1553,7 +1543,7 @@ var G = (function () {
   function skins() { return [skinById(D.skin), RIVAL]; }
   function picFor(m) {
     if (m.mode === 'level') return 'l' + (m.n < 10 ? '0' : '') + m.n;
-    if (m.mode === 'daily') { var k = 1 + (m.date % 19); return 'x' + (k < 10 ? '0' : '') + k; }
+    if (m.mode === 'daily') { var k = 1 + (m.date % 20); return 'x' + (k < 10 ? '0' : '') + k; }
     var un = unlockedPics(); return un.length ? un[(m.seed >>> 0) % un.length] : 'l01';
   }
   var toastT;
@@ -1695,7 +1685,7 @@ var RENDER = {
     $('hDuelSub').textContent = T('wins', { n: w });
     $('hDailySub').textContent = (D.daily.date === today() && D.daily.done) ? T('daily_done') : (D.daily.streak ? T('streak', { n: D.daily.streak }) : '');
     $('hSkinSub').textContent = T('sk_' + D.skin);
-    $('hGalSub').innerHTML = '🖼️ <bdi>' + unlockedPics().length + ' / 79</bdi>';
+    $('hGalSub').innerHTML = '🖼️ <bdi>' + unlockedPics().length + ' / 80</bdi>';
     music.play(0.5);
   },
   levels: function () {
@@ -1721,7 +1711,7 @@ var RENDER = {
   gallery: function () {
     var h = '', got = 0, all = [];
     for (var n = 1; n <= 60; n++) all.push([lvPic(n), n]);
-    for (var k = 1; k <= 19; k++) all.push(['x' + (k < 10 ? '0' : '') + k, 0]);
+    for (var k = 1; k <= 20; k++) all.push(['x' + (k < 10 ? '0' : '') + k, 0]);
     all.forEach(function (a) {
       var on = !!D.pics[a[0]]; if (on) got++;
       h += '<button class="gi' + (on ? '' : ' lock') + '" data-pic="' + a[0] + '" data-pn="' + a[1] + '">' + (on ? '<img loading="lazy" src="img/' + a[0] + '.jpg" alt="">' : '<span>?</span><small>' + (a[1] ? T('gal_lv', { n: a[1] }) : T('gal_daily')) + '</small>') + '</button>';
@@ -1830,7 +1820,7 @@ function renderAbout() {
   var h = '<div class="card" style="text-align:center"><img class="abicon" src="icon-192.png" alt=""><h2 style="margin:0">SnakeNest</h2><div class="mut">v<bdi>' + APP_VERSION + '</bdi></div></div>';
   h += '<div class="card"><div class="kv"><span>' + T('ab_version') + '</span><bdi>' + APP_VERSION + '</bdi></div><div class="kv"><span>' + T('ab_dev') + '</span><span>Barak Aflalo</span></div><div class="kv"><span>' + T('ab_platform') + '</span><span>PWA · HTML5</span></div><div class="kv"><span>' + T('ab_storage') + '</span><span>' + T('ab_storage_v') + '</span></div><div class="kv"><span>' + T('ab_license') + '</span><span>© AppNest 2026</span></div></div>';
   h += '<div style="display:grid;gap:9px"><button class="btn" id="aStore">🏪 ' + T('ab_store') + '</button><button class="btn" id="aShare">📤 ' + T('ab_share') + '</button><button class="btn" id="aFb">✉️ ' + T('ab_feedback') + '</button><button class="btn" id="aGuide">📖 ' + T('ab_guide') + '</button><button class="btn" id="aPriv">🔒 ' + T('ab_privacy') + '</button></div>';
-  h += '<div class="card" style="margin-top:12px"><b>' + T('ab_credits') + '</b><div class="mut" dir="ltr" style="text-align:left;line-height:1.6;margin-top:6px;font-size:13px">Game design, code, creatures &amp; world: Barak Aflalo · AppNest<br>World paintings, snakes, creatures, boss serpents, sea materials &amp; map: created for SnakeNest with AI image generation (Barak Aflalo)<br>Bonus item sprites: Bas de Reuver (bdrgames.nl) — Snake Sprites, free use<br>Daily-challenge ink illustrations: Ian MacLean, Luigi Castellani, Nicole Cardiff, Sara Mirabella — <i>Spears of the Dawn</i> art pack (Sine Nomine Publishing), public domain<br>Music: “Ancient Power of Serpents” by Kevin MacLeod, public domain (CC0)</div></div>';
+  h += '<div class="card" style="margin-top:12px"><b>' + T('ab_credits') + '</b><div class="mut" dir="ltr" style="text-align:left;line-height:1.6;margin-top:6px;font-size:13px">Game design, code, creatures &amp; world: Barak Aflalo · AppNest<br>World &amp; daily paintings, snakes, creatures, bosses, bonuses, sea materials, map, home screen &amp; icon: created for SnakeNest with AI image generation (Barak Aflalo)<br>Music: “Ancient Power of Serpents” by Kevin MacLeod, public domain (CC0)</div></div>';
   h += '<p class="mut" style="text-align:center;margin-top:16px;line-height:1.5">' + T('ab_disc') + '</p>';
   $('abBody').innerHTML = h;
   $('aStore').onclick = function () { openUrl('https://appnest-store.pages.dev/'); };
