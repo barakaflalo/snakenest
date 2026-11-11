@@ -166,6 +166,17 @@ body.pad-on .pad{display:grid}
 #pad{direction:ltr}
 .world.wlock .wban{filter:grayscale(.7) brightness(.55)}
 .wban{background-position:center 30%}
+
+.shoot{position:absolute;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));width:74px;height:74px;border-radius:50%;border:3px solid rgba(255,255,255,.7);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.35),rgba(0,0,0,.55));font-size:34px;display:none;place-items:center;z-index:6;touch-action:none;box-shadow:0 4px 16px rgba(0,0,0,.6)}
+.shoot.on{display:grid;animation:pop .25s}
+.shoot b{position:absolute;top:-6px;right:-6px;background:#111;color:#fff;border:2px solid #fff;border-radius:999px;min-width:26px;height:26px;font-size:15px;display:grid;place-items:center;padding:0 5px}
+.shoot.am-venom{border-color:#8dff5a;box-shadow:0 0 18px #3fd33f}
+.shoot.am-fire{border-color:#ff8a2a;box-shadow:0 0 18px #ff5a10}
+.shoot.am-ice{border-color:#bdf0ff;box-shadow:0 0 18px #5ec8ff}
+.shoot.am-bolt{border-color:#ffe14d;box-shadow:0 0 18px #ffd000}
+body.pad-on .shoot{display:none!important}
+@keyframes pop{from{transform:scale(.4)}to{transform:scale(1)}}
+#padFire:disabled{opacity:.35}
 </style>
 </head>
 <body>
@@ -214,8 +225,8 @@ body.pad-on .pad{display:grid}
       <div class="bar" id="gBar"><i class="p1" id="gB1"></i><i class="p2" id="gB2"></i><span class="tg" id="gTg"></span></div>
     </div>
   </div>
-  <div id="stage"><canvas id="cv"></canvas><div class="toast" id="toast"></div><div class="hint" id="hint"></div></div>
-  <div class="pad" id="pad"><span></span><button data-d="0">▲</button><span></span><button data-d="3">◀</button><button data-d="s">■</button><button data-d="1">▶</button><span></span><button data-d="2">▼</button><span></span></div>
+  <div id="stage"><canvas id="cv"></canvas><div class="toast" id="toast"></div><button class="shoot" id="shootBtn" aria-label="shoot"></button><div class="hint" id="hint"></div></div>
+  <div class="pad" id="pad"><span></span><button data-d="0">▲</button><span></span><button data-d="3">◀</button><button data-d="s">■</button><button data-d="1">▶</button><span></span><button data-d="2">▼</button><button data-d="f" id="padFire" disabled>🎯</button></div>
 </section>
 <div class="snack" id="snack"></div>
 <input type="file" id="fileIn" accept=".json,application/json" hidden>
@@ -274,7 +285,7 @@ function create(cfg) {
     cfg: cfg, W: W, H: H, N: N, rnd: R, t: 0, over: false, result: null,
     grid: new Uint8Array(N), trail: new Uint8Array(N), capT: new Float32Array(N),
     snakes: [], balls: [], crabs: [], events: [], seaTotal: 0, ver: 1,
-    items: [], itemT: 6 + R() * 4, freeze: 0, score: 0, combo: 0, lastCap: -99, boss: null
+    items: [], shots: [], itemT: 5 + R() * 3, freeze: 0, score: 0, combo: 0, lastCap: -99, boss: null
   };
   for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
     var b = (x < 2 || y < 2 || x >= W - 2 || y >= H - 2);
@@ -311,7 +322,7 @@ function create(cfg) {
 
 function addSnake(S, id, x, y, dir, lives) {
   S.snakes.push({ id: id, x: x, y: y, sx: x, sy: y, sdir: dir, dir: dir, moving: false, acc: 0,
-    speed: 12.5, base: 12.5, fast: 0, trail: [], lives: lives, dead: 0, inv: 1.5, area: 0, hist: [], ctrl: null, bot: null, cuts: 0, deaths: 0 });
+    speed: 12.5, base: 12.5, fast: 0, para: 0, ammo: null, ammoN: 0, cool: 0, shootReq: false, trail: [], lives: lives, dead: 0, inv: 1.5, area: 0, hist: [], ctrl: null, bot: null, cuts: 0, deaths: 0 });
 }
 
 function idx(S, x, y) { return y * S.W + x; }
@@ -326,6 +337,9 @@ function step(S) {
     s = S.snakes[i];
     if (s.dead > 0) { s.dead -= STEP; if (s.dead <= 0) respawn(S, s); continue; }
     if (s.inv > 0) s.inv -= STEP;
+    if (s.cool > 0) s.cool -= STEP;
+    if (s.shootReq) { s.shootReq = false; fire(S, s); }
+    if (s.para > 0) { s.para -= STEP; s.acc = 0; continue; }
     if (s.fast > 0) { s.fast -= STEP; s.speed = s.base * 1.35; } else s.speed = s.base;
     s.acc += STEP * s.speed;
     var guard = 0;
@@ -337,18 +351,78 @@ function step(S) {
     if (!s.moving) s.acc = Math.min(s.acc, 1);
   }
   if (S.freeze > 0) S.freeze -= STEP; else moveBalls(S);
-  moveCrabs(S); if (S.cfg.items) items(S); collide(S); checkEnd(S);
+  moveCrabs(S); if (S.cfg.items) items(S); shots(S); collide(S); checkEnd(S);
+}
+
+/* ── shooting: ammo pickups give 3 shots; venom paralyzes, fire burns creatures away, ice freezes, bolt cuts tails ── */
+var AMMO = { venom: 1, fire: 1, ice: 1, bolt: 1 };
+function fire(S, s) {
+  if (s.dead > 0 || s.cool > 0 || s.ammoN <= 0 || !s.ammo) return false;
+  s.ammoN--; s.cool = 0.35;
+  var d = s.dir, sp = 21;
+  S.shots.push({ x: s.x + .5 + DX[d] * .6, y: s.y + .5 + DY[d] * .6, vx: DX[d] * sp, vy: DY[d] * sp, type: s.ammo, owner: s.id, t: 1.3 });
+  S.events.push({ t: 'shoot', id: s.id, type: s.ammo });
+  if (s.ammoN <= 0) s.ammo = null;
+  return true;
+}
+function shots(S) {
+  var i, j;
+  for (i = S.shots.length - 1; i >= 0; i--) {
+    var p = S.shots[i], hit = false;
+    p.t -= STEP;
+    for (var sub = 0; sub < 3 && !hit; sub++) {
+      p.x += p.vx * STEP / 3; p.y += p.vy * STEP / 3;
+      if (p.x < 0 || p.y < 0 || p.x >= S.W || p.y >= S.H) { hit = true; break; }
+      // creatures
+      for (j = 0; j < S.balls.length && !hit; j++) {
+        var b = S.balls[j]; if (b.gone > 0 || p.owner === 0) continue;
+        if (Math.hypot(b.x - p.x, b.y - p.y) < b.r + 0.45) { hitCreature(S, b, p); hit = true; }
+      }
+      for (j = 0; j < S.crabs.length && !hit; j++) {
+        var c = S.crabs[j]; if (c.gone > 0 || p.owner === 0) continue;
+        if (Math.hypot(c.x - p.x, c.y - p.y) < 0.9) { c.gone = 7; S.events.push({ t: 'phit', what: 'crab', type: p.type, x: c.x, y: c.y, by: p.owner }); hit = true; }
+      }
+      // snakes
+      var cx = Math.floor(p.x), cy = Math.floor(p.y), cell = cy * S.W + cx;
+      for (j = 0; j < S.snakes.length && !hit; j++) {
+        var o = S.snakes[j]; if (o.id === p.owner || o.dead > 0) continue;
+        if (Math.hypot(o.x + .5 - p.x, o.y + .5 - p.y) < 0.85) {
+          if (o.inv > 0) { hit = true; break; }
+          if (p.owner === 0) { o.para = Math.max(o.para, 1.4); }
+          else if (p.type === 'venom') o.para = 2.6;
+          else if (p.type === 'ice') o.para = 3.4;
+          else if (p.type === 'fire') { o.para = 1.6; }
+          else if (p.type === 'bolt') { if (o.trail.length) kill(S, o, 'bolt'); else o.para = 1.6; }
+          S.events.push({ t: 'phit', what: 'snake', id: o.id, type: p.owner === 0 ? 'boss' : p.type, x: o.x, y: o.y, by: p.owner });
+          hit = true;
+        } else if ((p.type === 'bolt' || p.owner === 0) && S.trail[cell] === o.id) {
+          S.events.push({ t: 'phit', what: 'tail', id: o.id, type: p.type, x: cx, y: cy, by: p.owner });
+          if (p.owner !== 0) { var sn = snakeById(S, p.owner); if (sn) sn.cuts++; }
+          kill(S, o, p.owner === 0 ? 'boss' : 'bolt'); hit = true;
+        }
+      }
+    }
+    if (hit || p.t <= 0) S.shots.splice(i, 1);
+  }
+}
+function hitCreature(S, b, p) {
+  if (b.boss) { b.stun = Math.max(b.stun || 0, p.type === 'ice' ? 2.5 : 1.5); }
+  else if (p.type === 'fire') { b.gone = 6; }
+  else if (p.type === 'ice') { b.stun = 5; b.ice = 5; }
+  else if (p.type === 'venom') { b.stun = 4; }
+  else b.stun = 2.5;
+  S.events.push({ t: 'phit', what: b.boss ? 'boss' : 'ball', type: p.type, x: b.x, y: b.y, by: p.owner });
 }
 
 /* ── items: apple = speed + points, gapple = freeze creatures, bomb = stun + clear crabs, egg = +1 life ── */
-var ITEM_W = [['apple', 4], ['gapple', 3], ['bomb', 2], ['egg', 1]];
+var ITEM_W = [['apple', 3], ['gapple', 2], ['bomb', 2], ['egg', 1], ['venom', 3], ['fire', 2], ['ice', 2], ['bolt', 2]];
 function items(S) {
   var R = S.rnd, i;
   for (i = S.items.length - 1; i >= 0; i--) { S.items[i].t -= STEP; if (S.items[i].t <= 0) S.items.splice(i, 1); }
   S.itemT -= STEP;
   if (S.itemT <= 0) {
-    S.itemT = 7 + R() * 7;
-    if (S.items.length < 2) {
+    S.itemT = 6 + R() * 6;
+    if (S.items.length < 3) {
       for (var k = 0; k < 40; k++) {
         var x = 3 + Math.floor(R() * (S.W - 6)), y = 3 + Math.floor(R() * (S.H - 6)), c = y * S.W + x;
         if (S.grid[c] !== SEA || S.trail[c]) continue;
@@ -356,6 +430,7 @@ function items(S) {
         if (near) continue;
         var tot = 0, w; for (w = 0; w < ITEM_W.length; w++) tot += ITEM_W[w][1];
         var pick = R() * tot, type = 'apple'; for (w = 0; w < ITEM_W.length; w++) { pick -= ITEM_W[w][1]; if (pick <= 0) { type = ITEM_W[w][0]; break; } }
+        if (type === 'bolt' && S.snakes.length < 2) type = 'venom';
         S.items.push({ x: x, y: y, type: type, t: 12, life: 12 });
         break;
       }
@@ -375,7 +450,8 @@ function pickup(S, s) {
       for (var c = 0; c < S.crabs.length; c++) { S.crabs[c].gone = 8; }
       if (s.id === 1) S.score += 150;
     }
-    else if (it.type === 'egg') { if (!S.cfg.duel || true) s.lives++; }
+    else if (it.type === 'egg') s.lives++;
+    else if (AMMO[it.type]) { if (s.ammo === it.type) s.ammoN = Math.min(9, s.ammoN + 3); else { s.ammo = it.type; s.ammoN = 3; } }
     S.events.push({ t: 'item', id: s.id, type: it.type, x: it.x, y: it.y });
   }
 }
@@ -441,6 +517,7 @@ function seedCells(S, exclude) {
   var seeds = [], W = S.W, i;
   for (i = 0; i < S.balls.length; i++) {
     var b = S.balls[i], bx = Math.floor(b.x), by = Math.floor(b.y);
+    if (b.gone > 0) continue;
     for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
       var x = bx + dx, y = by + dy; if (inB(S, x, y)) seeds.push(y * W + x);
     }
@@ -495,6 +572,8 @@ function solidForCrab(S, x, y) { var cx = Math.floor(x), cy = Math.floor(y); if 
 function moveBalls(S) {
   for (var i = 0; i < S.balls.length; i++) {
     var b = S.balls[i];
+    if (b.ice > 0) b.ice -= STEP;
+    if (b.gone > 0) { b.gone -= STEP; if (b.gone <= 0) unstick(S, b, SEA); continue; }
     if (b.stun > 0) { b.stun -= STEP; continue; }
     if (b.boss) bossAI(S, b);
     bounce(S, b, solidForBall); b.ph += STEP * (b.boss ? 6 : 3);
@@ -504,6 +583,16 @@ function moveBalls(S) {
 }
 function bossAI(S, b) {
   b.lungeT -= STEP;
+  b.spitT = (b.spitT == null ? 3 : b.spitT) - STEP;
+  var tgt0 = S.snakes[0];
+  if (b.spitT <= 0 && tgt0.dead <= 0) {
+    b.spitT = 5 + S.rnd() * 3;
+    var tx = tgt0.x + .5, ty = tgt0.y + .5;
+    if (tgt0.trail.length && S.rnd() < .6) { var tc = tgt0.trail[Math.floor(tgt0.trail.length * .6)]; tx = tc % S.W + .5; ty = ((tc / S.W) | 0) + .5; }
+    var dx0 = tx - b.x, dy0 = ty - b.y, dd0 = Math.hypot(dx0, dy0) || 1;
+    S.shots.push({ x: b.x, y: b.y, vx: dx0 / dd0 * 11, vy: dy0 / dd0 * 11, type: 'spit', owner: 0, t: 4 });
+    S.events.push({ t: 'spit' });
+  }
   var p = S.snakes[0];
   if (b.lunge > 0) { b.lunge -= STEP; if (b.lunge <= 0) { var k = b.sp / Math.hypot(b.vx, b.vy); b.vx *= k; b.vy *= k; } return; }
   if (b.lungeT <= 0 && p.dead <= 0 && p.trail.length) {
@@ -535,6 +624,7 @@ function collide(S) {
   var i, j, s;
   for (i = 0; i < S.balls.length; i++) {
     var b = S.balls[i], r = b.r * 0.85;
+    if (b.gone > 0) continue;
     if (b.stun > 0 || S.freeze > 0) continue;
     var pts = [[b.x, b.y], [b.x - r, b.y], [b.x + r, b.y], [b.x, b.y - r], [b.x, b.y + r]];
     for (j = 0; j < pts.length; j++) {
@@ -654,9 +744,19 @@ function makeBot(level, seed) {
       B.plan = h3 || []; d = B.plan.length ? B.plan.shift() : s.dir;
     }
     s.want = d;
+    if (s.ammoN > 0 && level >= 2 && s.cool <= 0) botShoot(S, s, level, R);
   };
 }
 function homeAfter(S, s, path) { return []; }
+function botShoot(S, s, level, R) {
+  var d = s.dir, i, k;
+  if (R() > (level === 2 ? 0.25 : level === 3 ? 0.6 : 0.9)) return;
+  for (k = 1; k <= 13; k++) {
+    var x = s.x + DX[d] * k, y = s.y + DY[d] * k; if (!inB(S, x, y)) break;
+    for (i = 0; i < S.snakes.length; i++) { var o = S.snakes[i]; if (o !== s && o.dead <= 0 && o.inv <= 0 && ((o.x === x && o.y === y) || (s.ammo === 'bolt' && S.trail[y * S.W + x] === o.id))) { s.shootReq = true; return; } }
+    if (level >= 3 && s.trail.length) for (i = 0; i < S.balls.length; i++) { var b = S.balls[i]; if (!b.gone && !(b.stun > 0) && Math.hypot(b.x - x - .5, b.y - y - .5) < b.r + .6 && k < 7) { s.shootReq = true; return; } }
+  }
+}
 function nearCrab(S, c, r) {
   var x = c % S.W + .5, y = ((c / S.W) | 0) + .5;
   for (var i = 0; i < S.crabs.length; i++) { var k = S.crabs[i], dx = k.x + k.vx * 0.15 - x, dy = k.y + k.vy * 0.15 - y; if (dx * dx + dy * dy < r * r) return true; }
@@ -749,6 +849,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API; else 
 </script>
 <script>var LANG = {
 he: {
+  am_venom: 'ארס', am_fire: 'אש', am_ice: 'קרח', am_bolt: 'ברק', t_para_hit: 'שיתקת אותו!', t_para_me: 'שותקת!', r10: 'תחמושת: אסוף 🧪 ארס, 🔥 אש, ❄️ קרח או ⚡ ברק — כל אחד נותן 3 יריות, והכפתור העגול יורק בכיוון שאתה זז. ארס משתק את היריב ויצורים, אש שורפת יצור ומעלימה אותו לכמה שניות, קרח מקפיא, וברק חותך את הזנב של היריב. גם המחשב והבוסים יורים — תזוז!',
   w4: 'יער הקסמים', w5: 'ממלכת הקרח', w6: 'הר הגעש', w4d: 'פטריות זוהרות, מכשפות וצבאים עתיקים', w5d: 'ארמונות קרח, דובים וזוהר צפוני', w6d: 'נהרות לבה, דרקונים ונפחי אש', w1: 'נווה המדבר', w2: 'הג׳ונגל הפראי', w3: 'ממלכת הרוחות', w1d: 'שווקים, דיונות וארמונות חול', w2d: 'נמרים, ציידים ושבילים בין העצים', w3d: 'מקדשים, קסמים וכשפים עתיקים', world_n: 'עולם {n}',
   gallery: 'גלריה', gal_lv: 'נפתחת בשלב {n}', gal_daily: 'נפתחת באתגר יומי', gal_count: '{a} / {b} תמונות', img_unlocked: 'תמונה חדשה נפתחה בגלריה!', score: 'ניקוד', new_record: 'שיא חדש!',
   it_apple: 'מהירות!', it_gapple: 'היצורים קפאו!', it_bomb: 'בום! היצורים המומים', s_music: 'מוזיקה', ab_credits: 'קרדיטים', boss_lv: 'בוס: לכוד את הקוברה', boss_hint: 'סגור על הקוברה עד שיישאר לה רק 10% מהים',
@@ -793,6 +894,7 @@ he: {
   daily_res: 'אתגר יומי', new_skin: 'נחש חדש נפתח: {s}!', time_left: 'זמן', lives: 'חיים'
 },
 en: {
+  am_venom: 'Venom', am_fire: 'Fire', am_ice: 'Ice', am_bolt: 'Bolt', t_para_hit: 'You paralyzed it!', t_para_me: 'Paralyzed!', r10: 'Ammo: grab 🧪 venom, 🔥 fire, ❄️ ice or ⚡ bolt — each gives 3 shots, and the round button spits in the direction you move. Venom paralyzes rivals and creatures, fire burns a creature away for a few seconds, ice freezes, and a bolt cuts the rival’s tail. The computer and bosses shoot too — keep moving!',
   w4: 'Enchanted Forest', w5: 'Frost Kingdom', w6: 'Volcano', w4d: 'Glowing mushrooms, witches and ancient stags', w5d: 'Ice palaces, bears and northern lights', w6d: 'Lava rivers, dragons and fire smiths', w1: 'Desert Oasis', w2: 'Wild Jungle', w3: 'Spirit Kingdom', w1d: 'Markets, dunes and sand palaces', w2d: 'Leopards, hunters and forest trails', w3d: 'Temples, magic and ancient spells', world_n: 'World {n}',
   gallery: 'Gallery', gal_lv: 'Unlocks at level {n}', gal_daily: 'Unlocks in a daily challenge', gal_count: '{a} / {b} pictures', img_unlocked: 'New picture unlocked in the gallery!', score: 'Score', new_record: 'New record!',
   it_apple: 'Speed!', it_gapple: 'Creatures frozen!', it_bomb: 'Boom! Creatures stunned', s_music: 'Music', ab_credits: 'Credits', boss_lv: 'Boss: trap the cobra', boss_hint: 'Close in on the cobra until it has only 10% of the sea',
@@ -837,6 +939,7 @@ en: {
   daily_res: 'Daily challenge', new_skin: 'New snake unlocked: {s}!', time_left: 'Time', lives: 'Lives'
 },
 ru: {
+  am_venom: 'Яд', am_fire: 'Огонь', am_ice: 'Лёд', am_bolt: 'Молния', t_para_hit: 'Ты его парализовал!', t_para_me: 'Паралич!', r10: 'Боеприпасы: собирай 🧪 яд, 🔥 огонь, ❄️ лёд или ⚡ молнию — каждый даёт 3 выстрела, а круглая кнопка плюёт туда, куда ты движешься. Яд парализует соперника и существ, огонь сжигает существо на несколько секунд, лёд замораживает, молния перерезает хвост соперника. Компьютер и боссы тоже стреляют — двигайся!',
   w4: 'Зачарованный лес', w5: 'Ледяное царство', w6: 'Вулкан', w4d: 'Светящиеся грибы, ведьмы и древние олени', w5d: 'Ледяные дворцы, медведи и северное сияние', w6d: 'Реки лавы, драконы и огненные кузнецы', w1: 'Оазис в пустыне', w2: 'Дикие джунгли', w3: 'Царство духов', w1d: 'Рынки, дюны и песчаные дворцы', w2d: 'Леопарды, охотники и лесные тропы', w3d: 'Храмы, магия и древние чары', world_n: 'Мир {n}',
   gallery: 'Галерея', gal_lv: 'Откроется на уровне {n}', gal_daily: 'Откроется в задании дня', gal_count: '{a} / {b} картин', img_unlocked: 'В галерее новая картина!', score: 'Очки', new_record: 'Новый рекорд!',
   it_apple: 'Скорость!', it_gapple: 'Существа заморожены!', it_bomb: 'Бум! Существа оглушены', s_music: 'Музыка', ab_credits: 'Авторы', boss_lv: 'Босс: поймай кобру', boss_hint: 'Окружай кобру, пока у неё не останется 10% моря',
@@ -881,6 +984,7 @@ ru: {
   daily_res: 'Задание дня', new_skin: 'Новая змея: {s}!', time_left: 'Время', lives: 'Жизни'
 },
 es: {
+  am_venom: 'Veneno', am_fire: 'Fuego', am_ice: 'Hielo', am_bolt: 'Rayo', t_para_hit: '¡Lo paralizaste!', t_para_me: '¡Paralizado!', r10: 'Munición: recoge 🧪 veneno, 🔥 fuego, ❄️ hielo o ⚡ rayo — cada uno da 3 disparos, y el botón redondo escupe hacia donde te mueves. El veneno paraliza a rivales y criaturas, el fuego hace desaparecer una criatura unos segundos, el hielo congela y el rayo corta la cola del rival. La máquina y los jefes también disparan: ¡muévete!',
   w4: 'Bosque encantado', w5: 'Reino helado', w6: 'Volcán', w4d: 'Hongos brillantes, brujas y ciervos antiguos', w5d: 'Palacios de hielo, osos y auroras', w6d: 'Ríos de lava, dragones y herreros de fuego', w1: 'Oasis del desierto', w2: 'Selva salvaje', w3: 'Reino de los espíritus', w1d: 'Mercados, dunas y palacios de arena', w2d: 'Leopardos, cazadores y senderos', w3d: 'Templos, magia y hechizos antiguos', world_n: 'Mundo {n}',
   gallery: 'Galería', gal_lv: 'Se abre en el nivel {n}', gal_daily: 'Se abre en un reto diario', gal_count: '{a} / {b} imágenes', img_unlocked: '¡Nueva imagen en la galería!', score: 'Puntos', new_record: '¡Nuevo récord!',
   it_apple: '¡Velocidad!', it_gapple: '¡Criaturas congeladas!', it_bomb: '¡Bum! Criaturas aturdidas', s_music: 'Música', ab_credits: 'Créditos', boss_lv: 'Jefe: atrapa a la cobra', boss_hint: 'Encierra a la cobra hasta que solo le quede el 10% del mar',
@@ -925,6 +1029,7 @@ es: {
   daily_res: 'Reto diario', new_skin: 'Nueva serpiente: {s}!', time_left: 'Tiempo', lives: 'Vidas'
 },
 ar: {
+  am_venom: 'سم', am_fire: 'نار', am_ice: 'جليد', am_bolt: 'برق', t_para_hit: 'شللته!', t_para_me: 'أصبت بالشلل!', r10: 'الذخيرة: اجمع 🧪 السم أو 🔥 النار أو ❄️ الجليد أو ⚡ البرق — كل واحدة تعطي 3 طلقات، والزر الدائري يبصق في اتجاه حركتك. السم يشل الخصم والمخلوقات، والنار تحرق المخلوق وتخفيه لثوانٍ، والجليد يجمّد، والبرق يقطع ذيل الخصم. الحاسوب والزعماء يطلقون أيضًا — تحرّك!',
   w4: 'الغابة المسحورة', w5: 'مملكة الجليد', w6: 'البركان', w4d: 'فطر متوهج وساحرات وأيائل قديمة', w5d: 'قصور جليدية ودببة وشفق قطبي', w6d: 'أنهار حمم وتنانين وحدادو النار', w1: 'واحة الصحراء', w2: 'الغابة البرية', w3: 'مملكة الأرواح', w1d: 'أسواق وكثبان وقصور رملية', w2d: 'نمور وصيادون ودروب الغابة', w3d: 'معابد وسحر وتعاويذ قديمة', world_n: 'العالم {n}',
   gallery: 'المعرض', gal_lv: 'تُفتح في المرحلة {n}', gal_daily: 'تُفتح في تحدي اليوم', gal_count: '{a} / {b} صور', img_unlocked: 'صورة جديدة في المعرض!', score: 'النقاط', new_record: 'رقم قياسي جديد!',
   it_apple: 'سرعة!', it_gapple: 'تجمدت المخلوقات!', it_bomb: 'بوم! المخلوقات مذهولة', s_music: 'الموسيقى', ab_credits: 'الاعتمادات', boss_lv: 'الزعيم: احبس الكوبرا', boss_hint: 'أطبق على الكوبرا حتى يبقى لها 10% فقط من البحر',
@@ -973,7 +1078,7 @@ ar: {
 <script>/* SnakeNest app shell + renderer */
 (function () {
 'use strict';
-var APP_VERSION = '0.4.2';
+var APP_VERSION = '0.5.0';
 var E = window.SNE;
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'sk_data';
@@ -1303,6 +1408,7 @@ function drawSnake(x, V, S, s, sk, t) {
 }
 function drawBall(x, V, b, t, S) {
   var cs = V.cs, bx = b.x * cs, by = b.y * cs, R = b.r * cs * 1.35, frozen = S.freeze > 0 || b.stun > 0;
+  var stars = b.stun > 0 && !(S.freeze > 0) && !(b.ice > 0);
   if (b.boss) { drawBoss(x, V, b, t, S); return; }
   var art = worldArt(S.cfg.world);
   if (art.sea.ok) {
@@ -1310,7 +1416,7 @@ function drawBall(x, V, b, t, S) {
     x.save(); x.translate(bx, by); x.rotate(tilt + wob); if (b.vx < 0 && !b.big) x.scale(-1, 1);
     x.fillStyle = 'rgba(0,0,0,.25)'; x.beginPath(); x.ellipse(0, sz * .32, sz * .3, sz * .1, 0, 0, 6.283); x.fill();
     x.drawImage(art.sea, -sz / 2, -sz / 2, sz, sz); x.restore();
-    if (frozen) iceOver(x, bx, by, R * 1.3, t, b.stun > 0 && !(S.freeze > 0));
+    if (frozen) iceOver(x, bx, by, R * 1.3, t, stars);
     return;
   }
   if (b.big) {
@@ -1371,10 +1477,42 @@ function drawItem(x, V, it, t) {
   var cs = V.cs, ix = (it.x + .5) * cs, iy = (it.y + .5) * cs + Math.sin(t * 4 + it.x) * cs * .2, s = cs * 2;
   if (it.t < 3 && Math.floor(t * 8) % 2) return;
   var pulse = 1 + 0.15 * Math.sin(t * 6);
-  var col = it.type === 'apple' ? '255,80,80' : it.type === 'gapple' ? '120,255,140' : it.type === 'bomb' ? '255,200,80' : '120,200,255';
+  var AC = { apple: '255,190,60', gapple: '140,220,255', bomb: '255,140,60', egg: '140,255,120', venom: '90,255,90', fire: '255,110,30', ice: '150,220,255', bolt: '255,235,80' };
+  var col = AC[it.type] || '255,255,255';
   var g = x.createRadialGradient(ix, iy, 0, ix, iy, s * .9 * pulse); g.addColorStop(0, 'rgba(' + col + ',.55)'); g.addColorStop(1, 'rgba(' + col + ',0)');
   x.fillStyle = g; x.beginPath(); x.arc(ix, iy, s * .9 * pulse, 0, 6.283); x.fill();
-  var iim = IMG.items[it.type]; if (iim && iim.ok) x.drawImage(iim, ix - s * .6, iy - s * .6, s * 1.2, s * 1.2);
+  var iim = IMG.items[it.type]; if (iim && iim.ok) { x.drawImage(iim, ix - s * .6, iy - s * .6, s * 1.2, s * 1.2); return; }
+  if (AMMO_IC[it.type]) {
+    var r0 = s * .42; x.fillStyle = 'rgba(10,14,20,.85)'; x.strokeStyle = 'rgb(' + col + ')'; x.lineWidth = Math.max(1.5, cs * .16);
+    x.beginPath(); x.arc(ix, iy, r0, 0, 6.283); x.fill(); x.stroke();
+    x.font = Math.round(r0 * 1.15) + 'px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'ltr'; x.fillText(AMMO_IC[it.type], ix, iy + r0 * .06);
+  }
+}
+var AMMO_IC = { venom: '🧪', fire: '🔥', ice: '❄️', bolt: '⚡' };
+var SHOT_COL = { venom: ['#8dff5a', '#1f8a1f'], fire: ['#ffd04d', '#ff4a10'], ice: ['#e6fbff', '#5ec8ff'], bolt: ['#fff7a0', '#ffd000'], spit: ['#d6ff6b', '#6b8f00'] };
+function drawShots(x, V, S, t) {
+  var cs = V.cs;
+  for (var i = 0; i < S.shots.length; i++) {
+    var p = S.shots[i], px = p.x * cs, py = p.y * cs, c = SHOT_COL[p.type] || SHOT_COL.venom, sp = Math.hypot(p.vx, p.vy) || 1, ux = p.vx / sp, uy = p.vy / sp;
+    if (p.type === 'bolt') {
+      x.strokeStyle = c[1]; x.lineWidth = cs * .35; x.lineCap = 'round'; x.beginPath(); x.moveTo(px - ux * cs * 2.2, py - uy * cs * 2.2);
+      for (var k = 1; k <= 4; k++) { var f = k / 4, j = (k % 2 ? 1 : -1) * cs * .45; x.lineTo(px - ux * cs * 2.2 * (1 - f) - uy * j, py - uy * cs * 2.2 * (1 - f) + ux * j); }
+      x.stroke(); x.strokeStyle = c[0]; x.lineWidth = cs * .14; x.stroke(); continue;
+    }
+    var R0 = cs * (p.type === 'spit' ? .55 : .45);
+    var g = x.createLinearGradient(px, py, px - ux * cs * 2.4, py - uy * cs * 2.4); g.addColorStop(0, c[1]); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.strokeStyle = g; x.lineWidth = R0 * 1.6; x.lineCap = 'round'; x.beginPath(); x.moveTo(px, py); x.lineTo(px - ux * cs * 2.4, py - uy * cs * 2.4); x.stroke();
+    var rg = x.createRadialGradient(px, py, 0, px, py, R0 * 1.4); rg.addColorStop(0, c[0]); rg.addColorStop(.6, c[1]); rg.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = rg; x.beginPath(); x.arc(px, py, R0 * 1.4, 0, 6.283); x.fill();
+  }
+}
+function drawStatus(x, V, S, s, t) {
+  if (s.dead > 0 || !(s.para > 0)) return;
+  var cs = V.cs, hx = (s.x + .5) * cs, hy = (s.y + .5) * cs;
+  x.strokeStyle = 'rgba(140,255,90,.85)'; x.lineWidth = Math.max(1.5, cs * .15);
+  x.beginPath(); x.arc(hx, hy, cs * 1.4 + Math.sin(t * 10) * cs * .15, 0, 6.283); x.stroke();
+  x.fillStyle = '#ffe14d'; x.font = Math.round(cs * 1.1) + 'px sans-serif'; x.textAlign = 'center'; x.direction = 'ltr';
+  for (var k = 0; k < 3; k++) { var a = t * 4 + k * 2.09; x.fillText('★', hx + Math.cos(a) * cs * 1.3, hy - cs * 1.6 + Math.sin(a) * cs * .4); }
 }
 
 function drawField(cv, V, S, sk, t, dt, game) {
@@ -1397,7 +1535,9 @@ function drawField(cv, V, S, sk, t, dt, game) {
   for (i = 0; i < S.items.length; i++) drawItem(x, V, S.items[i], t);
   for (i = 0; i < S.crabs.length; i++) drawCrab(x, V, S.crabs[i], t, S);
   for (i = S.snakes.length - 1; i >= 0; i--) drawSnake(x, V, S, S.snakes[i], sk[i], t);
-  for (i = 0; i < S.balls.length; i++) drawBall(x, V, S.balls[i], t, S);
+  for (i = 0; i < S.balls.length; i++) if (!(S.balls[i].gone > 0)) drawBall(x, V, S.balls[i], t, S);
+  for (i = 0; i < S.snakes.length; i++) drawStatus(x, V, S, S.snakes[i], t);
+  drawShots(x, V, S, t);
   // death ghosts (X-eyes)
   for (i = V.ghosts.length - 1; i >= 0; i--) {
     var gh = V.ghosts[i]; gh.life -= dt; if (gh.life <= 0) { V.ghosts.splice(i, 1); continue; }
@@ -1455,6 +1595,11 @@ function handleFx(V, S, sk, ev, t, quiet) {
       V.ghosts.push({ x: e.x + .5, y: e.y + .5, sk: sk[e.id - 1], life: 1 });
       if (!quiet) V.shake = 0.3;
     } else if (e.t === 'cut') V.texts.push({ x: e.x + .5, y: e.y, s: '✂', col: '#fff', life: 1, big: true });
+    else if (e.t === 'phit') {
+      var pc2 = (SHOT_COL[e.type] || SHOT_COL.venom);
+      burst(V, e.x + (e.what === 'ball' || e.what === 'boss' || e.what === 'crab' ? 0 : .5), e.y + (e.what === 'ball' || e.what === 'boss' || e.what === 'crab' ? 0 : .5), pc2[0], 18, 7);
+      if (e.type === 'fire' && (e.what === 'ball' || e.what === 'crab')) { for (var q = 0; q < 16; q++) burst(V, e.x, e.y, q % 2 ? '#555' : '#ff7a1a', 1, 4); }
+    }
     else if (e.t === 'item') {
       burst(V, e.x + .5, e.y + .5, e.type === 'apple' ? '#ff5050' : e.type === 'gapple' ? '#9dffb0' : e.type === 'bomb' ? '#ffcf4d' : '#9ad8ff', 22, 7);
       if (e.type === 'bomb') { V.shake = quiet ? 0 : 0.35; for (var r = 0; r < 40; r++) burst(V, e.x + .5, e.y + .5, r % 2 ? '#ff8a00' : '#ffe14d', 1, 14); }
@@ -1520,6 +1665,7 @@ var G = (function () {
     q.push(d); sfx.turn();
   }
   function stopIn() { if (!S || paused) return; if (!started) return; stopReq = true; }
+  function shootIn() { if (!S || paused || S.over || !started) return; var p = S.snakes[0]; if (p.ammoN > 0) p.shootReq = true; }
   function frame(ts) {
     if (cur() !== 'game') return;
     var dt = Math.min(0.05, (ts - (last || ts)) / 1000); last = ts;
@@ -1563,8 +1709,18 @@ var G = (function () {
         else if (e.type === 'gapple') { tone(1200, 0.4, 'sine', 0.08, 300); toast('🧊 ' + T('it_gapple')); }
         else if (e.type === 'bomb') { noise(0.6, 0.45, 600); tone(90, 0.5, 'sawtooth', 0.12, 40); toast('💥 ' + T('it_bomb')); }
         else if (e.type === 'egg') { sfx.life(); toast('🥚 ' + T('t_life')); }
+        else if (AMMO_IC[e.type]) { tone(600, 0.1, 'triangle', 0.07, 1200); toast(AMMO_IC[e.type] + ' +3 ' + T('am_' + e.type)); }
       }
       else if (e.t === 'lunge') { tone(140, 0.35, 'sawtooth', 0.07, 70); }
+      else if (e.t === 'shoot') { if (e.id === 1) { tone(e.type === 'bolt' ? 1400 : e.type === 'ice' ? 1800 : e.type === 'fire' ? 300 : 700, 0.16, e.type === 'fire' ? 'sawtooth' : 'triangle', 0.08, e.type === 'fire' ? 120 : 200); vib(12); } else tone(500, 0.1, 'triangle', 0.04, 200); }
+      else if (e.t === 'spit') tone(260, 0.25, 'sawtooth', 0.06, 90);
+      else if (e.t === 'phit') {
+        if (e.by === 1 && e.what === 'snake') { toast(T('t_para_hit')); vib(30); tone(900, 0.2, 'square', 0.06, 1500); }
+        else if (e.by === 1 && e.what === 'tail') { toast(T('t_cut')); }
+        else if (e.what === 'snake' && e.id === 1) { toast(T('t_para_me')); vib([40, 30, 40]); tone(200, 0.3, 'sawtooth', 0.07, 80); }
+        else if (e.by === 1 && (e.what === 'ball' || e.what === 'crab') && e.type === 'fire') { noise(0.25, 0.2, 1500); }
+        else if (e.by === 1) tone(1100, 0.08, 'triangle', 0.05);
+      }
     }
   }
   function hud() {
@@ -1576,6 +1732,8 @@ var G = (function () {
     mid += '  ·  ' + S.score;
     right = '❤️'.repeat(Math.max(0, Math.min(p.lives, 6)));
     if (r && cfg.duel) right += ' 💜' + Math.max(0, r.lives);
+    var sb = $('shootBtn'), am = p.ammoN > 0 ? p.ammo : '';
+    if (sb._k !== am + p.ammoN) { sb._k = am + p.ammoN; sb.classList.toggle('on', !!am); sb.className = 'shoot' + (am ? ' on am-' + am : ''); sb.innerHTML = am ? AMMO_IC[am] + '<b>' + p.ammoN + '</b>' : ''; var pf = $('padFire'); if (pf) { pf.innerHTML = am ? AMMO_IC[am] : '🎯'; pf.disabled = !am; } }
     var key = label + mid + right + p.area + (r ? r.area : 0) + (S.boss ? S.boss.region : 0);
     if (key === lastHud) return; lastHud = key;
     $('gL').textContent = label; $('gM').innerHTML = '<bdi>' + esc(mid) + '</bdi>'; $('gR').textContent = right;
@@ -1650,16 +1808,18 @@ var G = (function () {
     function up(e) { if (pid !== e.pointerId) return; pid = null; if (!moved && Date.now() - t0 < 300) stopIn(); }
     st.addEventListener('pointerup', up); st.addEventListener('pointercancel', function () { pid = null; });
     document.querySelectorAll('#pad button').forEach(function (b) {
-      b.addEventListener('pointerdown', function (e) { e.preventDefault(); ac(); var d = b.getAttribute('data-d'); if (d === 's') stopIn(); else input(+d); });
+      b.addEventListener('pointerdown', function (e) { e.preventDefault(); ac(); var d = b.getAttribute('data-d'); if (d === 's') stopIn(); else if (d === 'f') shootIn(); else input(+d); });
     });
     document.addEventListener('keydown', function (e) {
       if (cur() !== 'game' || modals.length) return;
       var k = e.key, m = { ArrowUp: 0, w: 0, W: 0, ArrowRight: 1, d: 1, D: 1, ArrowDown: 2, s: 2, S: 2, ArrowLeft: 3, a: 3, A: 3 };
       if (m[k] != null) { e.preventDefault(); input(m[k]); }
       else if (k === ' ') { e.preventDefault(); if (!started) return; stopIn(); }
+      else if (k === 'f' || k === 'F' || k === 'Enter') { e.preventDefault(); shootIn(); }
       else if (k === 'p' || k === 'P' || k === 'Escape') pause();
     });
     $('gPause').onclick = function () { pause(); };
+    var sb = $('shootBtn'); sb.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); ac(); shootIn(); });
     document.addEventListener('visibilitychange', function () { if (document.hidden && cur() === 'game' && S && !S.over && !paused && started) pause(); });
   }
   return { start: start, setupInput: setupInput, pauseMenu: function () { if (S && S.over) { quit(); return; } pause(); }, state: function () { return S; } };
@@ -1669,8 +1829,8 @@ function today() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMo
 function prevDay(n) { var d = new Date(Math.floor(n / 10000), Math.floor(n / 100) % 100 - 1, n % 100 - 1); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
 
 function rulesHTML() {
-  var ic = ['🏝️', '👆', '🎯', '🐡', '🦀', '✂️', '⭐', '🍎', '🐍'];
-  var h = ''; for (var i = 1; i <= 9; i++) h += '<p><span class="ic">' + ic[i - 1] + '</span>' + esc(T('r' + i)) + '</p>';
+  var ic = ['🏝️', '👆', '🎯', '🐡', '🦀', '✂️', '⭐', '🍎', '🐍', '🧪'];
+  var h = ''; for (var i = 1; i <= 10; i++) h += '<p><span class="ic">' + ic[i - 1] + '</span>' + esc(T('r' + i)) + '</p>';
   h += '<p><span class="ic">🖼️</span>' + esc(T('reveal_t')) + '</p>';
   return h;
 }
