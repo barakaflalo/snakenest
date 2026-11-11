@@ -812,8 +812,10 @@ function moveSnake(S, s) {
     }
   }
   if (S.grid[c] === SEA) { S.trail[c] = s.id; s.trail.push(c); if (S.items.length) pickup(S, s); }
-  else if (s.mag && S.items.length) pickup(S, s);
-  else if (s.trail.length) capture(S, s);
+  else {
+    if (s.trail.length) capture(S, s);
+    if (s.mag && S.items.length) pickup(S, s);
+  }
 }
 
 function snakeById(S, id) { for (var i = 0; i < S.snakes.length; i++) if (S.snakes[i].id === id) return S.snakes[i]; return null; }
@@ -1453,7 +1455,7 @@ ar: {
 <script>/* SnakeNest app shell + renderer */
 (function () {
 'use strict';
-var APP_VERSION = '0.7.0';
+var APP_VERSION = '0.7.1';
 var E = window.SNE;
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'sk_data';
