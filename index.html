@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b0b0d">
+<title>SnakeNest</title>
+<meta name="description" content="SnakeNest — משחק סגירת שטחים עם נחשים: סוגרים שטחים, נזהרים מהיצורים ונלחמים בנחש המחשב.">
+<meta property="og:title" content="SnakeNest · AppNest">
+<meta property="og:description" content="סוגרים שטחים · שומרים על הזנב · קרב נחשים נגד המחשב">
+<meta property="og:image" content="icon-512.png">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{--bg:#0b0b0d;--bg2:#141418;--card:#17171c;--line:#3a3220;--acc:#d4af37;--acc2:#f3d77a;--txt:#f3efe4;--mut:#a29c8c;--ok:#4fd27b;--bad:#ff5d6c;--rad:16px}
+body.th-emerald{--bg:#07110d;--bg2:#0d1b15;--card:#10211a;--line:#1f4a37;--acc:#3ddc97;--acc2:#a8f3cf;--txt:#eafaf2;--mut:#8fb5a3}
+body.th-ocean{--bg:#061020;--bg2:#0b1a30;--card:#0f2038;--line:#1f3d66;--acc:#4cc3ff;--acc2:#b4e6ff;--txt:#eaf6ff;--mut:#8aa8c4}
+body.th-ruby{--bg:#12070a;--bg2:#1d0c11;--card:#231017;--line:#56202f;--acc:#ff5a7a;--acc2:#ffb3c2;--txt:#fff0f3;--mut:#c49aa4}
+body.th-day{--bg:#f6f1e6;--bg2:#ece5d4;--card:#fffdf8;--line:#d8c9a4;--acc:#9a7414;--acc2:#6d520c;--txt:#1d1a14;--mut:#6f6754}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Rubik,Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;background:var(--bg);animation:fin .22s ease}
+.screen.on{display:flex}
+@keyframes fin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.top{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;border-bottom:1px solid var(--line);background:var(--bg2)}
+.top h2{flex:1;margin:0;font-size:19px;font-weight:700}
+.bk{border:1px solid var(--acc);background:transparent;border-radius:12px;padding:8px 12px;font-weight:700;color:var(--acc);white-space:nowrap}
+.ib{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:20px;display:grid;place-items:center}
+.body{flex:1;overflow:auto;padding:14px 14px calc(20px + env(safe-area-inset-bottom))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--rad);padding:14px;margin-bottom:12px}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border-radius:14px;border:1px solid var(--acc);background:transparent;color:var(--acc);font-weight:700;font-size:17px}
+.btn.pri{background:var(--acc);color:#111;border-color:var(--acc)}
+body.th-day .btn.pri{color:#fff}
+.btn.sm{padding:10px;font-size:15px;width:auto}
+.btn.bad{border-color:var(--bad);color:var(--bad)}
+.row{display:flex;gap:10px;align-items:center}
+.mut{color:var(--mut);font-size:14px}
+/* home */
+#home{background:#04121c}
+#homeCv{position:absolute;inset:0;width:100%;height:100%;opacity:.55}
+.hwrap{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(0,0,0,.65),rgba(0,0,0,.25) 40%,rgba(0,0,0,.75))}
+body.th-day .hwrap{background:linear-gradient(180deg,rgba(246,241,230,.85),rgba(246,241,230,.35) 40%,rgba(246,241,230,.9))}
+.htop{display:flex;justify-content:space-between;gap:8px}
+.htop .grp{display:flex;gap:8px}
+.logo{text-align:center;margin:4vh 0 2vh}
+.logo h1{margin:0;font-size:46px;letter-spacing:.5px;font-weight:900;background:linear-gradient(90deg,var(--acc2),var(--acc));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 10px rgba(0,0,0,.6))}
+.logo p{margin:6px 0 0;color:var(--txt);opacity:.85;font-size:15px}
+.menu{display:grid;gap:11px;margin-top:auto;margin-bottom:auto;max-width:460px;width:100%;align-self:center}
+.mb{display:flex;align-items:center;gap:14px;padding:15px 16px;border-radius:18px;border:1px solid var(--acc);background:rgba(10,10,14,.72);backdrop-filter:blur(4px);font-size:19px;font-weight:800;text-align:start}
+body.th-day .mb{background:rgba(255,253,248,.85)}
+.mb.pri{background:var(--acc);color:#111}
+body.th-day .mb.pri{color:#fff}
+.mb .em{font-size:28px;width:36px;text-align:center}
+.mb small{display:block;font-size:12.5px;font-weight:500;opacity:.8;margin-top:2px}
+.badge{text-align:center;font-size:12px;color:var(--mut);margin-top:10px}
+.badge b{color:var(--acc)}
+/* levels */
+.lgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.lt{aspect-ratio:1;border-radius:14px;border:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:20px;position:relative}
+.lt.open{border-color:var(--acc)}
+.lt .st{font-size:11px;color:var(--acc);letter-spacing:-1px;height:13px}
+.lt.lock{opacity:.4}
+.lt .rv{position:absolute;top:3px;inset-inline-end:5px;font-size:12px}
+/* duel */
+.bots{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.bot{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px;text-align:start}
+.bot.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset}
+.bot b{font-size:17px;display:block}
+.bot span{font-size:12.5px;color:var(--mut)}
+/* skins */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sk{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:10px;text-align:center}
+.sk canvas{width:100%;height:70px;display:block}
+.sk.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset}
+.sk.lock{opacity:.55}
+.sk b{display:block;margin:4px 0}
+/* game */
+#game{background:#05101a}
+.hud{display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:rgba(0,0,0,.35)}
+.hud .ib{width:42px;height:42px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:#fff}
+.hmid{flex:1;min-width:0}
+.hl{display:flex;justify-content:space-between;font-size:13px;color:#d9e6f2;font-weight:700;gap:6px}
+.hearts{letter-spacing:1px;white-space:nowrap}
+.bar{position:relative;height:12px;border-radius:7px;background:rgba(255,255,255,.12);margin-top:5px;overflow:hidden}
+.bar i{position:absolute;inset-block:0;inset-inline-start:0;width:0;border-radius:7px;transition:width .35s}
+.bar .p1{background:linear-gradient(90deg,#38c172,#9ff0b8)}
+.bar .p2{background:linear-gradient(90deg,#a855f7,#e2b4ff)}
+.bar .tg{position:absolute;inset-block:-2px;width:2px;background:#fff;opacity:.9}
+.bar.duo{display:flex}
+#stage{flex:1;position:relative;touch-action:none;min-height:0}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.toast{position:absolute;left:50%;top:18%;transform:translateX(-50%);background:rgba(0,0,0,.72);color:#fff;padding:10px 18px;border-radius:999px;font-weight:800;font-size:17px;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;white-space:nowrap;z-index:5;border:1px solid rgba(255,255,255,.2)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(-6px)}
+.hint{position:absolute;left:0;right:0;bottom:12%;text-align:center;color:#fff;font-weight:800;font-size:18px;text-shadow:0 2px 6px #000;pointer-events:none;animation:pulse 1.4s infinite}
+.hint small{display:block;font-weight:500;font-size:13px;opacity:.85}
+@keyframes pulse{50%{opacity:.55}}
+.pad{display:none;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(3,56px);gap:6px;justify-content:center;padding:8px 0 calc(10px + env(safe-area-inset-bottom));background:rgba(0,0,0,.35)}
+body.pad-on .pad{display:grid}
+.pad button{border-radius:14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:24px;touch-action:none}
+.pad button:active{background:rgba(255,255,255,.25)}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:18px;animation:fin .2s}
+.md{background:var(--card);border:1px solid var(--acc);border-radius:20px;padding:18px;width:100%;max-width:400px;max-height:88vh;overflow:auto;text-align:center}
+.md h3{margin:4px 0 10px;font-size:24px}
+.md .stars{font-size:38px;color:var(--acc);letter-spacing:4px;margin:4px 0}
+.md .stars .off{opacity:.2}
+.md .btns{display:grid;gap:9px;margin-top:14px}
+.stat{display:flex;justify-content:space-between;padding:7px 2px;border-bottom:1px dashed var(--line);font-size:15px}
+.tut .ill{font-size:64px;margin:6px 0}
+.dots{display:flex;justify-content:center;gap:6px;margin:10px 0}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--acc)}
+/* settings */
+.fld{margin-bottom:14px}
+.fld label{display:block;font-weight:700;margin-bottom:7px}
+.fld input,.fld select{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--txt);font:inherit}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:9px 13px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);font-weight:600}
+.chip.on{border-color:var(--acc);color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+.sw{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.tg2{width:54px;height:30px;border-radius:15px;background:var(--line);position:relative;border:0}
+.tg2::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s}
+.tg2.on{background:var(--acc)}
+.tg2.on::after{inset-inline-start:27px}
+.rules p{line-height:1.6;margin:0 0 10px}
+.rules .ic{font-size:22px;margin-inline-end:6px}
+.snack{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#222;color:#fff;padding:11px 18px;border-radius:12px;z-index:90;font-weight:600;opacity:0;transition:.25s;pointer-events:none;max-width:90vw;text-align:center}
+.snack.on{opacity:1}
+.abicon{width:84px;height:84px;border-radius:22px;display:block;margin:4px auto 8px}
+.kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.kv span:first-child{color:var(--mut)}
+</style>
+</head>
+<body>
+<section class="screen on" id="home">
+  <canvas id="homeCv"></canvas>
+  <div class="hwrap">
+    <div class="htop">
+      <div class="grp"><button class="ib" id="hTheme" aria-label="theme">◐</button><button class="ib" id="hSet" aria-label="settings">⚙️</button></div>
+      <div class="grp"><button class="ib" id="hAbout" aria-label="about">ℹ️</button></div>
+    </div>
+    <div class="logo"><h1>SnakeNest</h1><p data-t="tagline"></p></div>
+    <div class="menu">
+      <button class="mb pri" data-go="levels"><span class="em">🐍</span><span><span data-t="play_levels"></span><small id="hLvSub"></small></span></button>
+      <button class="mb" data-go="duel"><span class="em">⚔️</span><span><span data-t="play_duel"></span><small id="hDuelSub"></small></span></button>
+      <button class="mb" data-go="daily"><span class="em">📅</span><span><span data-t="play_daily"></span><small id="hDailySub"></small></span></button>
+      <button class="mb" data-go="skins"><span class="em">🎨</span><span><span data-t="skins"></span><small id="hSkinSub"></small></span></button>
+      <button class="mb" data-go="rules"><span class="em">❓</span><span data-t="howto"></span></button>
+    </div>
+    <div class="badge">AppNest · <b>SnakeNest</b> · v<span class="ver"></span></div>
+  </div>
+</section>
+
+<section class="screen" id="levels"><div class="top"><button class="bk" data-back></button><h2 data-t="levels_title"></h2><span class="mut" id="lvStars"></span></div><div class="body"><div class="lgrid" id="lgrid"></div></div></section>
+
+<section class="screen" id="duel"><div class="top"><button class="bk" data-back></button><h2 data-t="duel_title"></h2></div>
+  <div class="body"><div class="card"><p style="margin:0;line-height:1.55" data-t="duel_desc"></p></div><div class="bots" id="bots"></div><button class="btn pri" id="duelGo">⚔️ <span data-t="start"></span></button></div></section>
+
+<section class="screen" id="daily"><div class="top"><button class="bk" data-back></button><h2 data-t="daily_title"></h2></div>
+  <div class="body"><div class="card" style="text-align:center"><div style="font-size:54px" id="dIcon">📅</div><h3 id="dDate" style="margin:6px 0"></h3><p class="mut" data-t="daily_desc"></p><p id="dInfo" style="font-weight:700"></p></div><button class="btn pri" id="dailyGo">▶ <span data-t="start"></span></button></div></section>
+
+<section class="screen" id="skins"><div class="top"><button class="bk" data-back></button><h2 data-t="skins_title"></h2><span class="mut" id="skStars"></span></div><div class="body"><div class="sgrid" id="sgrid"></div></div></section>
+
+<section class="screen" id="rules"><div class="top"><button class="bk" data-back></button><h2 data-t="r_title"></h2></div><div class="body rules" id="rulesBody"></div></section>
+
+<section class="screen" id="settings"><div class="top"><button class="bk" data-back></button><h2 data-t="settings"></h2></div><div class="body" id="setBody"></div></section>
+
+<section class="screen" id="about"><div class="top"><button class="bk" data-back></button><h2 data-t="about"></h2></div><div class="body" id="abBody"></div></section>
+
+<section class="screen" id="game">
+  <div class="hud">
+    <button class="ib" id="gPause" aria-label="pause">⏸</button>
+    <div class="hmid">
+      <div class="hl"><span id="gL"></span><span id="gM"></span><span id="gR" class="hearts"></span></div>
+      <div class="bar" id="gBar"><i class="p1" id="gB1"></i><i class="p2" id="gB2"></i><span class="tg" id="gTg"></span></div>
+    </div>
+  </div>
+  <div id="stage"><canvas id="cv"></canvas><div class="toast" id="toast"></div><div class="hint" id="hint"></div></div>
+  <div class="pad" id="pad"><span></span><button data-d="0">▲</button><span></span><button data-d="3">◀</button><button data-d="s">■</button><button data-d="1">▶</button><span></span><button data-d="2">▼</button><span></span></div>
+</section>
+<div class="snack" id="snack"></div>
+<input type="file" id="fileIn" accept=".json,application/json" hidden>
+<script>/* SnakeNest engine — pure & deterministic (seeded RNG, fixed step 1/60). Runs in browser and Node. */
+(function (root) {
+'use strict';
+var SEA = 0, NEU = 1; // land owned by snake id k is 1+k (k=1 → 2, k=2 → 3)
+var DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
+var STEP = 1 / 60;
+
+function rng(seed) {
+  var a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    var t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* Level table: n = 1..30 */
+function levelCfg(n) {
+  var tier = n <= 10 ? 0 : n <= 20 ? 1 : 2;
+  var rival = (n % 5 === 0);
+  return {
+    W: 30, H: 56, seed: 1000 + n * 7919,
+    balls: Math.min(6, 1 + Math.floor(n / 5)),
+    ballSpeed: 4.6 + n * 0.08,
+    big: n >= 14 ? 1 : 0,
+    crabs: n >= 7 ? (n >= 19 ? 2 : 1) : 0,
+    crabSpeed: 2.8 + n * 0.03,
+    target: [0.70, 0.72, 0.75][tier],
+    lives: 3,
+    rival: rival ? (n <= 10 ? 1 : n <= 25 ? 2 : 3) : 0,
+    time: 0
+  };
+}
+function duelCfg(lvl, seed) {
+  return { W: 30, H: 56, seed: seed, balls: 2 + (lvl >= 3 ? 1 : 0), ballSpeed: 5.6 + lvl * 0.3, big: 0,
+    crabs: lvl >= 2 ? 1 : 0, crabSpeed: 3.4, target: 0.80, lives: 5, rival: lvl, duel: true, time: 180 };
+}
+function dailyCfg(dateNum) {
+  var r = rng(dateNum * 2654435761);
+  var n = 8 + Math.floor(r() * 14);
+  var c = levelCfg(n);
+  c.seed = dateNum; c.rival = r() < 0.4 ? 2 : 0; c.daily = true;
+  return c;
+}
+
+function create(cfg) {
+  var W = cfg.W, H = cfg.H, N = W * H, R = rng(cfg.seed);
+  var S = {
+    cfg: cfg, W: W, H: H, N: N, rnd: R, t: 0, over: false, result: null,
+    grid: new Uint8Array(N), trail: new Uint8Array(N), capT: new Float32Array(N),
+    snakes: [], balls: [], crabs: [], events: [], seaTotal: 0, ver: 1
+  };
+  for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+    var b = (x < 2 || y < 2 || x >= W - 2 || y >= H - 2);
+    S.grid[y * W + x] = b ? NEU : SEA;
+    S.capT[y * W + x] = -99;
+  }
+  for (var i = 0; i < N; i++) if (S.grid[i] === SEA) S.seaTotal++;
+  addSnake(S, 1, Math.floor(W / 2), 0, 2, cfg.lives);
+  if (cfg.rival) addSnake(S, 2, Math.floor(W / 2), H - 1, 0, cfg.duel ? cfg.lives : 999);
+  function seaSpot() {
+    for (var k = 0; k < 500; k++) {
+      var x = 5 + R() * (W - 10), y = 6 + R() * (H - 12);
+      return { x: x, y: y };
+    }
+  }
+  for (var j = 0; j < cfg.balls + (cfg.big || 0); j++) {
+    var p = seaSpot(), big = j >= cfg.balls;
+    var sp = cfg.ballSpeed * (big ? 0.7 : (0.85 + R() * 0.3));
+    var a = (Math.floor(R() * 4) * 90 + 45) * Math.PI / 180;
+    S.balls.push({ x: p.x, y: p.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: big ? 0.95 : 0.48, big: big, ph: R() * 6 });
+  }
+  for (var c = 0; c < cfg.crabs; c++) {
+    var cx = c % 2 ? 0.5 : W - 0.5, cy = 1 + (H - 2) * ((c + 1) / (cfg.crabs + 1));
+    var ang = (R() < 0.5 ? 45 : 135) * Math.PI / 180, cs = cfg.crabSpeed;
+    S.crabs.push({ x: Math.min(W - 0.6, Math.max(0.6, cx)), y: cy, vx: Math.cos(ang) * cs * (R() < .5 ? -1 : 1), vy: Math.sin(ang) * cs, ph: R() * 6 });
+  }
+  return S;
+}
+
+function addSnake(S, id, x, y, dir, lives) {
+  S.snakes.push({ id: id, x: x, y: y, sx: x, sy: y, sdir: dir, dir: dir, moving: false, acc: 0,
+    speed: 12.5, trail: [], lives: lives, dead: 0, inv: 1.5, area: 0, hist: [], ctrl: null, bot: null, cuts: 0, deaths: 0 });
+}
+
+function idx(S, x, y) { return y * S.W + x; }
+function isLand(v) { return v !== SEA; }
+function inB(S, x, y) { return x >= 0 && y >= 0 && x < S.W && y < S.H; }
+
+function step(S) {
+  if (S.over) return;
+  S.t += STEP;
+  var i, s;
+  for (i = 0; i < S.snakes.length; i++) {
+    s = S.snakes[i];
+    if (s.dead > 0) { s.dead -= STEP; if (s.dead <= 0) respawn(S, s); continue; }
+    if (s.inv > 0) s.inv -= STEP;
+    s.acc += STEP * s.speed;
+    var guard = 0;
+    while (s.acc >= 1 && guard++ < 3 && s.dead <= 0) {
+      s.acc -= 1;
+      if (s.ctrl) s.ctrl(S, s);
+      moveSnake(S, s);
+    }
+    if (!s.moving) s.acc = Math.min(s.acc, 1);
+  }
+  moveBalls(S); moveCrabs(S); collide(S); checkEnd(S);
+}
+
+function respawn(S, s) {
+  if (s.lives <= 0) return;
+  s.x = s.sx; s.y = s.sy; s.dir = s.sdir; s.moving = false; s.inv = 2; s.hist = []; s.acc = 0;
+  if (s.bot) s.bot.plan = [];
+  S.events.push({ t: 'spawn', id: s.id });
+}
+
+function moveSnake(S, s) {
+  var nd = s.want != null ? s.want : s.dir;
+  if (s.trail.length && nd === (s.dir + 2) % 4) nd = s.dir; // no U-turn in the sea
+  if (s.stop && !s.trail.length) { s.moving = false; s.stop = false; return; }
+  s.stop = false;
+  if (s.want == null && !s.moving) return;
+  s.dir = nd; s.want = null;
+  var nx = s.x + DX[nd], ny = s.y + DY[nd];
+  if (!inB(S, nx, ny)) { s.moving = false; return; }
+  s.moving = true;
+  var c = idx(S, nx, ny), tr = S.trail[c];
+  s.hist.unshift(idx(S, s.x, s.y)); if (s.hist.length > 7) s.hist.length = 7;
+  s.x = nx; s.y = ny;
+  if (tr === s.id) { kill(S, s, 'self'); return; }
+  if (tr && tr !== s.id) {
+    var o = snakeById(S, tr);
+    if (o && o.dead <= 0) { s.cuts++; S.events.push({ t: 'cut', by: s.id, victim: o.id, x: nx, y: ny }); kill(S, o, 'cut'); }
+  }
+  // head-on in the sea
+  for (var k = 0; k < S.snakes.length; k++) {
+    var o2 = S.snakes[k];
+    if (o2 !== s && o2.dead <= 0 && o2.x === nx && o2.y === ny && S.grid[c] === SEA && o2.inv <= 0 && s.inv <= 0) {
+      kill(S, o2, 'head'); kill(S, s, 'head'); return;
+    }
+  }
+  if (S.grid[c] === SEA) { S.trail[c] = s.id; s.trail.push(c); }
+  else if (s.trail.length) capture(S, s);
+}
+
+function snakeById(S, id) { for (var i = 0; i < S.snakes.length; i++) if (S.snakes[i].id === id) return S.snakes[i]; return null; }
+
+function kill(S, s, why) {
+  if (s.dead > 0) return;
+  for (var i = 0; i < s.trail.length; i++) if (S.trail[s.trail[i]] === s.id) S.trail[s.trail[i]] = 0;
+  s.trail = []; s.lives--; s.deaths++; s.dead = (s.id === 2 && !S.cfg.duel) ? 2.5 : 0.9; s.moving = false; s.want = null;
+  S.events.push({ t: 'die', id: s.id, x: s.x, y: s.y, why: why });
+  S.ver++;
+}
+
+function floodFrom(S, seeds, mark) {
+  var W = S.W, H = S.H, q = new Int32Array(S.N), qh = 0, qt = 0, g = S.grid;
+  for (var i = 0; i < seeds.length; i++) { var c = seeds[i]; if (c >= 0 && g[c] === SEA && !mark[c]) { mark[c] = 1; q[qt++] = c; } }
+  while (qh < qt) {
+    var p = q[qh++], x = p % W, y = (p / W) | 0;
+    if (x > 0 && g[p - 1] === SEA && !mark[p - 1]) { mark[p - 1] = 1; q[qt++] = p - 1; }
+    if (x < W - 1 && g[p + 1] === SEA && !mark[p + 1]) { mark[p + 1] = 1; q[qt++] = p + 1; }
+    if (y > 0 && g[p - W] === SEA && !mark[p - W]) { mark[p - W] = 1; q[qt++] = p - W; }
+    if (y < H - 1 && g[p + W] === SEA && !mark[p + W]) { mark[p + W] = 1; q[qt++] = p + W; }
+  }
+}
+function seedCells(S, exclude) {
+  var seeds = [], W = S.W, i;
+  for (i = 0; i < S.balls.length; i++) {
+    var b = S.balls[i], bx = Math.floor(b.x), by = Math.floor(b.y);
+    for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+      var x = bx + dx, y = by + dy; if (inB(S, x, y)) seeds.push(y * W + x);
+    }
+  }
+  for (i = 0; i < S.snakes.length; i++) {
+    var o = S.snakes[i];
+    if (o !== exclude && o.dead <= 0 && o.trail.length) seeds.push(idx(S, o.x, o.y));
+  }
+  return seeds;
+}
+
+function capture(S, s) {
+  var own = 1 + s.id, g = S.grid, n = s.trail.length, i, cells = s.trail.slice();
+  for (i = 0; i < s.trail.length; i++) { g[s.trail[i]] = own; S.trail[s.trail[i]] = 0; S.capT[s.trail[i]] = S.t; }
+  s.trail = [];
+  var mark = new Uint8Array(S.N);
+  floodFrom(S, seedCells(S, s), mark);
+  for (i = 0; i < S.N; i++) if (g[i] === SEA && !mark[i]) {
+    g[i] = own; S.capT[i] = S.t; n++; cells.push(i);
+    if (S.trail[i]) S.trail[i] = 0; // stray (should not happen)
+  }
+  s.area += n;
+  S.ver++;
+  if (!S.cfg.duel && s.id === 1 && !s.bonus && s.area / S.seaTotal >= 0.5) { s.bonus = 1; s.lives++; S.events.push({ t: 'life', id: 1 }); }
+  S.events.push({ t: 'cap', id: s.id, n: n, cells: cells, pct: n / S.seaTotal });
+}
+
+function bounce(S, o, solid) {
+  var sub = 3, i;
+  for (i = 0; i < sub; i++) {
+    var dt = STEP / sub, nx = o.x + o.vx * dt, ny = o.y + o.vy * dt, r = o.r || 0.45;
+    var hx = solid(S, nx + Math.sign(o.vx) * r, o.y), hy = solid(S, o.x, ny + Math.sign(o.vy) * r);
+    if (hx) o.vx = -o.vx; else o.x = nx;
+    if (hy) o.vy = -o.vy; else o.y = ny;
+    if (!hx && !hy && solid(S, nx + Math.sign(o.vx) * r, ny + Math.sign(o.vy) * r)) { o.vx = -o.vx; o.vy = -o.vy; }
+  }
+}
+function solidForBall(S, x, y) { var cx = Math.floor(x), cy = Math.floor(y); if (!inB(S, cx, cy)) return true; return S.grid[cy * S.W + cx] !== SEA; }
+function solidForCrab(S, x, y) { var cx = Math.floor(x), cy = Math.floor(y); if (!inB(S, cx, cy)) return true; return S.grid[cy * S.W + cx] === SEA; }
+
+function moveBalls(S) {
+  for (var i = 0; i < S.balls.length; i++) {
+    var b = S.balls[i]; bounce(S, b, solidForBall); b.ph += STEP * 3;
+    // escape if stuck inside land (after a capture next to it)
+    if (solidForBall(S, b.x, b.y)) unstick(S, b, SEA);
+  }
+}
+function moveCrabs(S) {
+  for (var i = 0; i < S.crabs.length; i++) {
+    var c = S.crabs[i]; c.r = 0.4; bounce(S, c, solidForCrab); c.ph += STEP * 8;
+    if (solidForCrab(S, c.x, c.y)) unstick(S, c, -1);
+  }
+}
+function unstick(S, o, want) {
+  var cx = Math.floor(o.x), cy = Math.floor(o.y), best = null, bd = 1e9;
+  for (var dy = -3; dy <= 3; dy++) for (var dx = -3; dx <= 3; dx++) {
+    var x = cx + dx, y = cy + dy; if (!inB(S, x, y)) continue;
+    var v = S.grid[y * S.W + x], ok = want === SEA ? v === SEA : v !== SEA;
+    if (ok && dx * dx + dy * dy < bd) { bd = dx * dx + dy * dy; best = [x + .5, y + .5]; }
+  }
+  if (best) { o.x = best[0]; o.y = best[1]; }
+}
+
+function collide(S) {
+  var i, j, s;
+  for (i = 0; i < S.balls.length; i++) {
+    var b = S.balls[i], r = b.r * 0.85;
+    var pts = [[b.x, b.y], [b.x - r, b.y], [b.x + r, b.y], [b.x, b.y - r], [b.x, b.y + r]];
+    for (j = 0; j < pts.length; j++) {
+      var cx = Math.floor(pts[j][0]), cy = Math.floor(pts[j][1]);
+      if (!inB(S, cx, cy)) continue;
+      var tr = S.trail[cy * S.W + cx];
+      if (tr) { var o = snakeById(S, tr); if (o && o.dead <= 0) { S.events.push({ t: 'hit', id: o.id, x: cx, y: cy }); kill(S, o, 'ball'); } }
+    }
+    for (j = 0; j < S.snakes.length; j++) {
+      s = S.snakes[j];
+      if (s.dead > 0 || s.inv > 0 || S.grid[idx(S, s.x, s.y)] !== SEA) continue;
+      var dx = s.x + .5 - b.x, dy = s.y + .5 - b.y;
+      if (dx * dx + dy * dy < (b.r + .35) * (b.r + .35)) kill(S, s, 'ball');
+    }
+  }
+  for (i = 0; i < S.crabs.length; i++) {
+    var c = S.crabs[i];
+    for (j = 0; j < S.snakes.length; j++) {
+      s = S.snakes[j];
+      if (s.dead > 0 || s.inv > 0) continue;
+      var ex = s.x + .5 - c.x, ey = s.y + .5 - c.y;
+      if (ex * ex + ey * ey < 0.7 * 0.7) kill(S, s, 'crab');
+    }
+  }
+}
+
+function pct(S, s) { return s.area / S.seaTotal; }
+function seaLeft(S) { var n = 0; for (var i = 0; i < S.N; i++) if (S.grid[i] === SEA) n++; return n / S.seaTotal; }
+
+function checkEnd(S) {
+  var cfg = S.cfg, p = S.snakes[0], r = S.snakes[1];
+  if (cfg.duel) {
+    var done = null;
+    if (p.lives <= 0 && p.dead <= 0.01) done = 'lose';
+    else if (r.lives <= 0 && r.dead <= 0.01) done = 'win';
+    else if (S.t >= cfg.time || (S.ver !== S._lv && (S._lv = S.ver, 1 - seaLeft(S) >= cfg.target))) done = p.area > r.area ? 'win' : p.area < r.area ? 'lose' : 'draw';
+    if (done) { S.over = true; S.result = { r: done, why: p.lives <= 0 || r.lives <= 0 ? 'lives' : 'area' }; }
+    return;
+  }
+  if (p.lives <= 0 && p.dead <= 0.01) { S.over = true; S.result = { r: 'lose', why: 'lives' }; return; }
+  if (S.ver !== S._lv) {
+    S._lv = S.ver;
+    if (r) {
+      if (1 - seaLeft(S) >= cfg.target) { S.over = true; S.result = { r: p.area > r.area ? 'win' : 'lose', why: 'rival' }; }
+    } else if (pct(S, p) >= cfg.target) { S.over = true; S.result = { r: 'win', why: 'area' }; }
+  }
+}
+
+/* ───────────── Bot ───────────── */
+function landPath(S, from, to, allowSea) {
+  // BFS over land (or anything not own trail), returns list of dirs
+  var W = S.W, prev = new Int32Array(S.N).fill(-1), q = [from], h = 0; prev[from] = from;
+  var tset = typeof to === 'function' ? to : function (c) { return c === to; };
+  while (h < q.length) {
+    var p = q[h++];
+    if (p !== from && tset(p)) {
+      var dirs = [], c = p;
+      while (c !== from) { var pc = prev[c], d = c - pc === 1 ? 1 : c - pc === -1 ? 3 : c - pc === W ? 2 : 0; dirs.unshift(d); c = pc; }
+      return dirs;
+    }
+    var x = p % W, y = (p / W) | 0;
+    for (var d2 = 0; d2 < 4; d2++) {
+      var nx = x + DX[d2], ny = y + DY[d2]; if (!inB(S, nx, ny)) continue;
+      var n = ny * W + nx; if (prev[n] !== -1) continue;
+      if (!allowSea(n)) continue;
+      prev[n] = p; q.push(n);
+    }
+  }
+  return null;
+}
+
+function makeBot(level, seed) {
+  var R = rng(seed);
+  var P = [null,
+    { cand: 1, kmin: 2, kmax: 4, mmin: 2, mmax: 6, care: 0, hunt: 0, err: 0.12 },
+    { cand: 4, kmin: 2, kmax: 6, mmin: 3, mmax: 9, care: 0.5, hunt: 0, err: 0.05 },
+    { cand: 12, kmin: 3, kmax: 8, mmin: 4, mmax: 12, care: 1, hunt: 0.4, err: 0.015 },
+    { cand: 22, kmin: 3, kmax: 10, mmin: 4, mmax: 15, care: 1, hunt: 1, err: 0 }][level];
+  return function ctrl(S, s) {
+    var B = s.bot || (s.bot = { plan: [], wait: 0 });
+    var head = idx(S, s.x, s.y), inSea = s.trail.length > 0;
+    if (B.wait > 0) { B.wait--; s.want = null; s.stop = true; return; }
+    // retreat if danger
+    if (inSea && P.care && R() < P.care && danger(S, s, 1 + P.care)) {
+      var home = landPath(S, head, function (c) { return S.grid[c] !== SEA; }, function (c) { return S.trail[c] !== s.id; });
+      if (home) B.plan = home;
+    }
+    // hunt
+    if (P.hunt && !B.hunting && R() < P.hunt * 0.25) {
+      var opp = S.snakes.filter(function (o) { return o !== s && o.dead <= 0 && o.trail.length >= 3; })[0];
+      if (opp && s.trail.length < 6) {
+        var hp = landPath(S, head, function (c) { return S.trail[c] === opp.id; }, function (c) { return S.trail[c] !== s.id; });
+        if (hp && hp.length <= 9) { B.plan = hp.concat(homeAfter(S, s, hp)); B.hunting = true; }
+      }
+    }
+    if (!B.plan.length) {
+      B.hunting = false;
+      if (inSea) {
+        var h2 = landPath(S, head, function (c) { return S.grid[c] !== SEA; }, function (c) { return S.trail[c] !== s.id; });
+        B.plan = h2 || [s.dir];
+      } else B.plan = choosePlan(S, s, P, R) || [];
+      if (!B.plan.length) { B.wait = 10; s.stop = true; return; }
+    }
+    if (!inSea && P.care && B.plan.length) {
+      var pd = B.plan[0], qx = s.x + DX[pd], qy = s.y + DY[pd];
+      if (inB(S, qx, qy) && S.grid[idx(S, qx, qy)] !== SEA && nearCrab(S, idx(S, qx, qy), 1.6)) {
+        B.plan = []; B.wait = 6 + Math.floor(R() * 10); s.want = (s.dir + 2) % 4; return;
+      }
+    }
+    var d = B.plan.shift();
+    if (P.err && R() < P.err && inSea) { var alt = (d + (R() < .5 ? 1 : 3)) % 4; d = alt; B.plan = []; }
+    // safety: never step on own trail
+    var nx = s.x + DX[d], ny = s.y + DY[d];
+    if (!inB(S, nx, ny) || S.trail[idx(S, nx, ny)] === s.id || (inSea && d === (s.dir + 2) % 4)) {
+      var h3 = landPath(S, head, function (c) { return S.grid[c] !== SEA; }, function (c) { return S.trail[c] !== s.id; });
+      B.plan = h3 || []; d = B.plan.length ? B.plan.shift() : s.dir;
+    }
+    s.want = d;
+  };
+}
+function homeAfter(S, s, path) { return []; }
+function nearCrab(S, c, r) {
+  var x = c % S.W + .5, y = ((c / S.W) | 0) + .5;
+  for (var i = 0; i < S.crabs.length; i++) { var k = S.crabs[i], dx = k.x + k.vx * 0.15 - x, dy = k.y + k.vy * 0.15 - y; if (dx * dx + dy * dy < r * r) return true; }
+  return false;
+}
+
+function danger(S, s, k) {
+  var cells = s.trail.concat([idx(S, s.x, s.y)]), W = S.W;
+  for (var i = 0; i < S.balls.length; i++) {
+    var b = S.balls[i], fx = b.x + b.vx * 0.35, fy = b.y + b.vy * 0.35, lim = (b.r + 1.2 * k);
+    for (var j = 0; j < cells.length; j++) {
+      var cx = cells[j] % W + .5, cy = ((cells[j] / W) | 0) + .5;
+      var dx = cx - fx, dy = cy - fy;
+      if (dx * dx + dy * dy < lim * lim) return true;
+    }
+  }
+  return false;
+}
+
+function choosePlan(S, s, P, R) {
+  var W = S.W, H = S.H, g = S.grid, head = idx(S, s.x, s.y);
+  // frontier cells: land next to sea
+  var fr = [];
+  for (var y = 1; y < H - 1; y++) for (var x = 1; x < W - 1; x++) {
+    var c = y * W + x; if (g[c] === SEA) continue;
+    for (var d = 0; d < 4; d++) if (g[c + DX[d] + DY[d] * W] === SEA) { fr.push([c, d]); }
+  }
+  if (!fr.length) return null;
+  // distances on land from head
+  var dist = new Int32Array(S.N).fill(-1), q = [head], h = 0; dist[head] = 0;
+  while (h < q.length) {
+    var p = q[h++], px = p % W, py = (p / W) | 0;
+    for (var d2 = 0; d2 < 4; d2++) { var nx = px + DX[d2], ny = py + DY[d2]; if (!inB(S, nx, ny)) continue; var n = ny * W + nx; if (dist[n] < 0 && g[n] !== SEA) { dist[n] = dist[p] + 1; q.push(n); } }
+  }
+  var best = null, bestScore = -1e9;
+  var tries = P.cand * 3;
+  for (var t = 0, got = 0; t < tries && got < P.cand; t++) {
+    var f = fr[Math.floor(R() * fr.length)], fc = f[0], od = f[1];
+    if (dist[fc] < 0) continue;
+    var k = P.kmin + Math.floor(R() * (P.kmax - P.kmin + 1)), m = P.mmin + Math.floor(R() * (P.mmax - P.mmin + 1));
+    var side = R() < .5 ? (od + 1) % 4 : (od + 3) % 4;
+    var path = rectPath(S, fc, od, side, k, m);
+    if (!path) continue;
+    got++;
+    var sc;
+    if (P.cand === 1) sc = 0; else {
+      var gain = simGain(S, s, path.cells);
+      var risk = 0;
+      for (var bi = 0; bi < S.balls.length; bi++) {
+        var b = S.balls[bi];
+        for (var ci = 0; ci < path.cells.length; ci += 2) { var cx = path.cells[ci] % W + .5, cy = ((path.cells[ci] / W) | 0) + .5; var dd = Math.hypot(cx - b.x, cy - b.y); if (dd < 4) risk += (4 - dd); }
+      }
+      sc = gain - risk * 6 * P.care - dist[fc] * 1.5 - path.cells.length * 0.8;
+    }
+    if (sc > bestScore) { bestScore = sc; best = { fc: fc, dirs: path.dirs }; }
+  }
+  if (!best) return null;
+  var lp = best.fc === head ? [] : landPath(S, head, best.fc, function (c) { return g[c] !== SEA && !(P.care && nearCrab(S, c, 1.4)); });
+  if (!lp) return null;
+  return lp.concat(best.dirs);
+}
+function rectPath(S, fc, od, side, k, m) {
+  var W = S.W, x = fc % W, y = (fc / W) | 0, cells = [], dirs = [];
+  var legs = [[od, k], [side, m], [(od + 2) % 4, k + 2]];
+  for (var L = 0; L < legs.length; L++) {
+    for (var i = 0; i < legs[L][1]; i++) {
+      var d = legs[L][0]; x += DX[d]; y += DY[d];
+      if (!inB(S, x, y)) return null;
+      var c = y * W + x; dirs.push(d);
+      if (S.trail[c]) return null;
+      if (S.grid[c] !== SEA) { return cells.length >= 2 ? { cells: cells, dirs: dirs } : null; }
+      cells.push(c);
+    }
+  }
+  return null; // must return to land
+}
+function simGain(S, s, cells) {
+  var g = S.grid, saved = [], i;
+  for (i = 0; i < cells.length; i++) { saved.push(g[cells[i]]); g[cells[i]] = 9; }
+  var mark = new Uint8Array(S.N); floodFrom(S, seedCells(S, s), mark);
+  var n = cells.length;
+  for (i = 0; i < S.N; i++) if (g[i] === SEA && !mark[i]) n++;
+  for (i = 0; i < cells.length; i++) g[cells[i]] = saved[i];
+  return n;
+}
+
+var API = { SEA: SEA, NEU: NEU, DX: DX, DY: DY, STEP: STEP, rng: rng, create: create, step: step, levelCfg: levelCfg, duelCfg: duelCfg, dailyCfg: dailyCfg, makeBot: makeBot, pct: pct, seaLeft: seaLeft };
+if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.SNE = API;
+})(this);
+</script>
+<script>var LANG = {
+he: {
+  dir: 'rtl', name: 'עברית',
+  tagline: 'סוגרים שטחים · שומרים על הזנב',
+  play_levels: 'שלבים', play_duel: 'נגד המחשב', play_daily: 'אתגר יומי', skins: 'הנחשים שלי', howto: 'איך משחקים', settings: 'הגדרות', about: 'אודות', theme: 'עיצוב',
+  levels_title: 'שלבים', level: 'שלב {n}', locked: 'נעול', rival_badge: 'יריב',
+  duel_title: 'נגד המחשב', duel_desc: 'נחש מחשב סוגר שטחים בצבע שלו. מי שתופס יותר שטח מנצח — וחתיכת זנב שולחת את היריב להתחלה.',
+  bot1: 'קל', bot2: 'בינוני', bot3: 'קשה', bot4: 'אלוף', bot1d: 'סוגר פינות קטנות ולא שם לב לסכנה', bot2d: 'בוחר שטחים טובים יותר ונזהר לפעמים', bot3d: 'חמדן וזהיר, ולפעמים צד זנבות', bot4d: 'הכי חמדן — וצד כל זנב שמתקרב', start: 'התחל', wins: 'ניצחונות: {n}',
+  daily_title: 'אתגר יומי', daily_desc: 'מגרש אחד לכל העולם היום. אותו שלב לכולם — עד חצות.', daily_done: 'עברת את האתגר היום ✓', streak: 'רצף: {n} ימים', best: 'שיא היום: {p}',
+  skins_title: 'הנחשים שלי', skin_need: 'נפתח ב-{n} ★', skin_use: 'בחר', skin_on: 'נבחר ✓', stars_have: 'יש לך {n} ★',
+  sk_green: 'ירקון', sk_coral: 'אלמוג', sk_gold: 'זהבי', sk_ice: 'קרחון', sk_lava: 'לבה', sk_night: 'לילה', sk_candy: 'סוכריה', sk_tiger: 'נמרון',
+  target: 'יעד {p}', you: 'אתה', rival: 'יריב', pause: 'הפסקה', resume: 'המשך', restart: 'מההתחלה', quit: 'יציאה', rules: 'חוקים',
+  hint_start: 'החלק על המסך כדי לזוז', hint_tap: 'הקשה עוצרת (רק על היבשה)',
+  win_title: 'ניצחת!', lose_title: 'הפסדת', draw_title: 'תיקו', next: 'לשלב הבא', retry: 'שוב', home: 'בית',
+  res_area: 'השטח שלך', res_rival: 'שטח היריב', res_time: 'זמן', res_cuts: 'זנבות שחתכת',
+  why_lives: 'נגמרו החיים', why_rival: 'ליריב היה יותר שטח', why_rlives: 'ליריב נגמרו החיים',
+  t_life: '+1 חיים!', t_cut: 'חתכת לו את הזנב!', t_cutme: 'חתכו לך את הזנב!', t_big: 'סגירה ענקית!', t_go: 'קדימה!', t_bonus: 'בונוס חיים ב-50%',
+  back_exit: 'לחץ שוב כדי לצאת', back: 'חזרה',
+  s_name: 'שם משתמש', s_name_ph: 'שם או כינוי', s_lang: 'שפה', s_theme: 'עיצוב', s_sound: 'צלילים', s_vib: 'רטט', s_ctrl: 'שליטה', ctrl_swipe: 'החלקה', ctrl_pad: 'כפתורי כיוון', s_tutorial: 'מדריך פתיחה', s_backup: 'גיבוי', s_export: 'ייצוא גיבוי', s_import: 'שחזור מגיבוי', s_reset: 'מחק הכול',
+  reset_c1: 'למחוק את כל ההתקדמות, הכוכבים וההגדרות?', reset_c2: 'בטוח? אי אפשר לבטל את זה.', import_c: 'השחזור יחליף את כל ההתקדמות הנוכחית. להמשיך?', import_ok: 'הגיבוי שוחזר', import_bad: 'הקובץ לא נראה כמו גיבוי של SnakeNest', save_fail: 'השמירה נכשלה — האחסון במכשיר מלא או חסום', exported: 'קובץ הגיבוי נשמר',
+  th_gold: 'שחור-זהב', th_emerald: 'אזמרגד', th_ocean: 'אוקיינוס', th_ruby: 'אודם', th_day: 'יום',
+  ab_version: 'גרסה', ab_dev: 'פותח על ידי', ab_platform: 'פלטפורמה', ab_storage: 'אחסון', ab_storage_v: 'על המכשיר בלבד', ab_license: 'רישיון', ab_store: 'לחנות AppNest', ab_share: 'שתף את המשחק', ab_feedback: 'שלח משוב', ab_guide: 'מדריך', ab_privacy: 'מדיניות פרטיות',
+  ab_disc: 'משחק לבידור בלבד. אין פרסומות, אין מעקב, וכל ההתקדמות נשמרת רק בטלפון שלך.',
+  r_title: 'איך משחקים',
+  r1: 'אתה נחש שחי על היבשה (השטח הצבעוני). הים הכחול באמצע — זה מה שצריך לכבוש.',
+  r2: 'החלק על המסך כדי לפנות. כשהנחש נכנס לים הוא משאיר אחריו זנב.',
+  r3: 'חזור ליבשה — וכל שטח הים שסגרת בלי יצורים בתוכו הופך לשלך.',
+  r4: 'היצורים בים נושכים: אם יצור נוגע בזנב או בראש בזמן שאתה בים — הפסדת חיים. אסור גם לחצות את הזנב של עצמך.',
+  r5: 'הסרטנים מטיילים על היבשה — אל תתקרב אליהם.',
+  r6: 'נגד יריב: נגעת בזנב שלו? הוא חוזר להתחלה. מי שתופס יותר שטח — מנצח.',
+  r7: 'כוכבים: ★ סיום · ★★ בלי יותר מפסילה אחת · ★★★ בלי פסילות בכלל. ב-50% מקבלים חיים בונוס.',
+  tut1t: 'ברוך הבא ל-SnakeNest', tut1b: 'משחק סגירת שטחים: אתה נחש, והים שבאמצע מחכה שתכבוש אותו.',
+  tut2t: 'החלקה = פנייה', tut2b: 'החלק על המסך לכל כיוון. בים הנחש משאיר זנב מאחוריו.',
+  tut3t: 'חוזרים הביתה = כובשים', tut3b: 'כשהראש חוזר ליבשה, כל אזור סגור בלי יצורים נצבע בצבע שלך.',
+  tut4t: 'זהירות מהיצורים', tut4b: 'יצורי הים נושכים את הזנב, וסרטנים שומרים על היבשה. כמה שהזנב ארוך יותר — ככה הסיכון גדל.',
+  tut5t: 'קרב נחשים', tut5b: 'מול המחשב: חתוך ליריב את הזנב ותפוס יותר שטח ממנו. בהצלחה!',
+  skip: 'דלג', nextb: 'הבא', done: 'יאללה!',
+  yes: 'כן', no: 'לא', cancel: 'ביטול', ok: 'אישור',
+  share_text: '{name} משחק/ת ב-SnakeNest — סוגרים שטחים ונלחמים בנחשים!', share_anon: 'בוא לשחק SnakeNest — סוגרים שטחים ונלחמים בנחשים!',
+  daily_res: 'אתגר יומי', new_skin: 'נחש חדש נפתח: {s}!', time_left: 'זמן', lives: 'חיים'
+},
+en: {
+  dir: 'ltr', name: 'English',
+  tagline: 'Close areas · guard your tail',
+  play_levels: 'Levels', play_duel: 'Vs Computer', play_daily: 'Daily challenge', skins: 'My snakes', howto: 'How to play', settings: 'Settings', about: 'About', theme: 'Theme',
+  levels_title: 'Levels', level: 'Level {n}', locked: 'Locked', rival_badge: 'Rival',
+  duel_title: 'Vs Computer', duel_desc: 'A computer snake claims land in its own color. Whoever holds more land wins — and cutting a tail sends the rival back to start.',
+  bot1: 'Easy', bot2: 'Medium', bot3: 'Hard', bot4: 'Champion', bot1d: 'Closes small corners, ignores danger', bot2d: 'Picks better areas, sometimes careful', bot3d: 'Greedy and careful, hunts tails now and then', bot4d: 'The greediest — hunts every tail nearby', start: 'Start', wins: 'Wins: {n}',
+  daily_title: 'Daily challenge', daily_desc: 'One field for everyone today. Same level for all — until midnight.', daily_done: 'Today’s challenge cleared ✓', streak: 'Streak: {n} days', best: 'Today’s best: {p}',
+  skins_title: 'My snakes', skin_need: 'Unlocks at {n} ★', skin_use: 'Choose', skin_on: 'Selected ✓', stars_have: 'You have {n} ★',
+  sk_green: 'Leafy', sk_coral: 'Coral', sk_gold: 'Goldie', sk_ice: 'Iceberg', sk_lava: 'Lava', sk_night: 'Midnight', sk_candy: 'Candy', sk_tiger: 'Tiger',
+  target: 'Goal {p}', you: 'You', rival: 'Rival', pause: 'Paused', resume: 'Resume', restart: 'Restart', quit: 'Quit', rules: 'Rules',
+  hint_start: 'Swipe on the screen to move', hint_tap: 'Tap to stop (on land only)',
+  win_title: 'You won!', lose_title: 'You lost', draw_title: 'Draw', next: 'Next level', retry: 'Again', home: 'Home',
+  res_area: 'Your land', res_rival: 'Rival land', res_time: 'Time', res_cuts: 'Tails cut',
+  why_lives: 'Out of lives', why_rival: 'The rival held more land', why_rlives: 'The rival ran out of lives',
+  t_life: '+1 life!', t_cut: 'You cut its tail!', t_cutme: 'Your tail was cut!', t_big: 'Huge capture!', t_go: 'Go!', t_bonus: 'Bonus life at 50%',
+  back_exit: 'Press back again to exit', back: 'Back',
+  s_name: 'User name', s_name_ph: 'Name or nickname', s_lang: 'Language', s_theme: 'Theme', s_sound: 'Sounds', s_vib: 'Vibration', s_ctrl: 'Controls', ctrl_swipe: 'Swipe', ctrl_pad: 'Arrow buttons', s_tutorial: 'Intro guide', s_backup: 'Backup', s_export: 'Export backup', s_import: 'Restore backup', s_reset: 'Delete everything',
+  reset_c1: 'Delete all progress, stars and settings?', reset_c2: 'Are you sure? This cannot be undone.', import_c: 'Restoring replaces all current progress. Continue?', import_ok: 'Backup restored', import_bad: 'This file doesn’t look like a SnakeNest backup', save_fail: 'Saving failed — device storage is full or blocked', exported: 'Backup file saved',
+  th_gold: 'Black & gold', th_emerald: 'Emerald', th_ocean: 'Ocean', th_ruby: 'Ruby', th_day: 'Day',
+  ab_version: 'Version', ab_dev: 'Developer', ab_platform: 'Platform', ab_storage: 'Storage', ab_storage_v: 'On this device only', ab_license: 'License', ab_store: 'AppNest store', ab_share: 'Share the game', ab_feedback: 'Send feedback', ab_guide: 'Guide', ab_privacy: 'Privacy policy',
+  ab_disc: 'For entertainment only. No ads, no tracking — all progress stays on your phone.',
+  r_title: 'How to play',
+  r1: 'You are a snake living on land (the colored area). The blue sea in the middle is what you must conquer.',
+  r2: 'Swipe to turn. When the snake enters the sea it leaves a tail behind.',
+  r3: 'Get back to land — every closed patch of sea without creatures inside becomes yours.',
+  r4: 'Sea creatures bite: if one touches your tail or head while you are at sea, you lose a life. Never cross your own tail.',
+  r5: 'Crabs walk on land — keep away from them.',
+  r6: 'Against a rival: touch its tail and it goes back to start. Whoever holds more land wins.',
+  r7: 'Stars: ★ finish · ★★ at most one loss · ★★★ no losses. Reaching 50% gives a bonus life.',
+  tut1t: 'Welcome to SnakeNest', tut1b: 'A land-grab game: you are a snake, and the sea in the middle is waiting to be conquered.',
+  tut2t: 'Swipe = turn', tut2b: 'Swipe in any direction. At sea the snake leaves a tail behind it.',
+  tut3t: 'Back home = capture', tut3b: 'When your head returns to land, every closed area without creatures turns your color.',
+  tut4t: 'Watch the creatures', tut4b: 'Sea creatures bite tails and crabs guard the land. The longer the tail, the bigger the risk.',
+  tut5t: 'Snake battle', tut5b: 'Against the computer: cut the rival’s tail and hold more land. Good luck!',
+  skip: 'Skip', nextb: 'Next', done: 'Let’s go!',
+  yes: 'Yes', no: 'No', cancel: 'Cancel', ok: 'OK',
+  share_text: '{name} is playing SnakeNest — close areas and battle snakes!', share_anon: 'Come play SnakeNest — close areas and battle snakes!',
+  daily_res: 'Daily challenge', new_skin: 'New snake unlocked: {s}!', time_left: 'Time', lives: 'Lives'
+},
+ru: {
+  dir: 'ltr', name: 'Русский',
+  tagline: 'Захватывай землю · береги хвост',
+  play_levels: 'Уровни', play_duel: 'Против компьютера', play_daily: 'Задание дня', skins: 'Мои змеи', howto: 'Как играть', settings: 'Настройки', about: 'Об игре', theme: 'Тема',
+  levels_title: 'Уровни', level: 'Уровень {n}', locked: 'Закрыто', rival_badge: 'Соперник',
+  duel_title: 'Против компьютера', duel_desc: 'Змея-компьютер захватывает землю своим цветом. Побеждает тот, у кого больше земли, а перерезанный хвост отправляет соперника на старт.',
+  bot1: 'Легко', bot2: 'Средне', bot3: 'Сложно', bot4: 'Чемпион', bot1d: 'Закрывает маленькие углы, не видит опасность', bot2d: 'Выбирает участки получше, иногда осторожен', bot3d: 'Жадный и осторожный, иногда охотится на хвосты', bot4d: 'Самый жадный — охотится на каждый хвост рядом', start: 'Старт', wins: 'Победы: {n}',
+  daily_title: 'Задание дня', daily_desc: 'Одно поле для всех сегодня. Один и тот же уровень — до полуночи.', daily_done: 'Задание дня выполнено ✓', streak: 'Серия: {n} дн.', best: 'Рекорд дня: {p}',
+  skins_title: 'Мои змеи', skin_need: 'Откроется при {n} ★', skin_use: 'Выбрать', skin_on: 'Выбрано ✓', stars_have: 'У тебя {n} ★',
+  sk_green: 'Листик', sk_coral: 'Коралл', sk_gold: 'Золотко', sk_ice: 'Айсберг', sk_lava: 'Лава', sk_night: 'Полночь', sk_candy: 'Конфета', sk_tiger: 'Тигрик',
+  target: 'Цель {p}', you: 'Ты', rival: 'Соперник', pause: 'Пауза', resume: 'Продолжить', restart: 'Заново', quit: 'Выйти', rules: 'Правила',
+  hint_start: 'Проведи по экрану, чтобы двигаться', hint_tap: 'Касание — стоп (только на суше)',
+  win_title: 'Победа!', lose_title: 'Поражение', draw_title: 'Ничья', next: 'Следующий', retry: 'Ещё раз', home: 'Домой',
+  res_area: 'Твоя земля', res_rival: 'Земля соперника', res_time: 'Время', res_cuts: 'Перерезано хвостов',
+  why_lives: 'Жизни закончились', why_rival: 'У соперника больше земли', why_rlives: 'У соперника закончились жизни',
+  t_life: '+1 жизнь!', t_cut: 'Ты перерезал хвост!', t_cutme: 'Тебе перерезали хвост!', t_big: 'Огромный захват!', t_go: 'Вперёд!', t_bonus: 'Бонусная жизнь на 50%',
+  back_exit: 'Нажми ещё раз для выхода', back: 'Назад',
+  s_name: 'Имя', s_name_ph: 'Имя или ник', s_lang: 'Язык', s_theme: 'Тема', s_sound: 'Звуки', s_vib: 'Вибрация', s_ctrl: 'Управление', ctrl_swipe: 'Свайп', ctrl_pad: 'Кнопки', s_tutorial: 'Обучение', s_backup: 'Резервная копия', s_export: 'Экспорт', s_import: 'Восстановить', s_reset: 'Удалить всё',
+  reset_c1: 'Удалить весь прогресс, звёзды и настройки?', reset_c2: 'Точно? Это нельзя отменить.', import_c: 'Восстановление заменит текущий прогресс. Продолжить?', import_ok: 'Копия восстановлена', import_bad: 'Это не похоже на копию SnakeNest', save_fail: 'Не удалось сохранить — память заполнена или заблокирована', exported: 'Файл сохранён',
+  th_gold: 'Чёрное золото', th_emerald: 'Изумруд', th_ocean: 'Океан', th_ruby: 'Рубин', th_day: 'День',
+  ab_version: 'Версия', ab_dev: 'Разработчик', ab_platform: 'Платформа', ab_storage: 'Хранение', ab_storage_v: 'Только на устройстве', ab_license: 'Лицензия', ab_store: 'Магазин AppNest', ab_share: 'Поделиться', ab_feedback: 'Отзыв', ab_guide: 'Обучение', ab_privacy: 'Конфиденциальность',
+  ab_disc: 'Только для развлечения. Без рекламы и слежки — прогресс хранится только в телефоне.',
+  r_title: 'Как играть',
+  r1: 'Ты — змея на суше (цветная область). Синее море в центре нужно захватить.',
+  r2: 'Проводи по экрану, чтобы повернуть. В море змея оставляет хвост.',
+  r3: 'Вернись на сушу — каждый закрытый участок моря без существ станет твоим.',
+  r4: 'Морские существа кусаются: коснулись хвоста или головы в море — минус жизнь. Нельзя пересекать свой хвост.',
+  r5: 'Крабы ходят по суше — держись от них подальше.',
+  r6: 'Против соперника: коснись его хвоста — и он вернётся на старт. Побеждает тот, у кого больше земли.',
+  r7: 'Звёзды: ★ финиш · ★★ не больше одной потери · ★★★ без потерь. На 50% — бонусная жизнь.',
+  tut1t: 'Добро пожаловать в SnakeNest', tut1b: 'Игра на захват территории: ты — змея, а море ждёт покорения.',
+  tut2t: 'Свайп = поворот', tut2b: 'Проводи в любую сторону. В море за змеёй тянется хвост.',
+  tut3t: 'Домой = захват', tut3b: 'Когда голова возвращается на сушу, закрытые участки без существ становятся твоими.',
+  tut4t: 'Осторожно, существа', tut4b: 'Морские существа кусают хвост, а крабы стерегут сушу. Чем длиннее хвост, тем больше риск.',
+  tut5t: 'Битва змей', tut5b: 'Против компьютера: перережь хвост сопернику и захвати больше земли. Удачи!',
+  skip: 'Пропустить', nextb: 'Далее', done: 'Поехали!',
+  yes: 'Да', no: 'Нет', cancel: 'Отмена', ok: 'ОК',
+  share_text: '{name} играет в SnakeNest — захватывай землю и сражайся со змеями!', share_anon: 'Играй в SnakeNest — захватывай землю и сражайся со змеями!',
+  daily_res: 'Задание дня', new_skin: 'Новая змея: {s}!', time_left: 'Время', lives: 'Жизни'
+},
+es: {
+  dir: 'ltr', name: 'Español',
+  tagline: 'Cierra zonas · cuida tu cola',
+  play_levels: 'Niveles', play_duel: 'Contra la máquina', play_daily: 'Reto diario', skins: 'Mis serpientes', howto: 'Cómo jugar', settings: 'Ajustes', about: 'Acerca de', theme: 'Tema',
+  levels_title: 'Niveles', level: 'Nivel {n}', locked: 'Bloqueado', rival_badge: 'Rival',
+  duel_title: 'Contra la máquina', duel_desc: 'Una serpiente de la máquina conquista tierra con su color. Gana quien tenga más tierra, y cortar una cola manda al rival al inicio.',
+  bot1: 'Fácil', bot2: 'Medio', bot3: 'Difícil', bot4: 'Campeón', bot1d: 'Cierra rincones pequeños, no ve el peligro', bot2d: 'Elige mejores zonas, a veces con cuidado', bot3d: 'Codicioso y prudente, a veces caza colas', bot4d: 'El más codicioso: caza cada cola cercana', start: 'Empezar', wins: 'Victorias: {n}',
+  daily_title: 'Reto diario', daily_desc: 'Un campo para todos hoy. El mismo nivel para todos, hasta medianoche.', daily_done: 'Reto de hoy superado ✓', streak: 'Racha: {n} días', best: 'Mejor de hoy: {p}',
+  skins_title: 'Mis serpientes', skin_need: 'Se abre con {n} ★', skin_use: 'Elegir', skin_on: 'Elegida ✓', stars_have: 'Tienes {n} ★',
+  sk_green: 'Hojita', sk_coral: 'Coral', sk_gold: 'Dorada', sk_ice: 'Iceberg', sk_lava: 'Lava', sk_night: 'Noche', sk_candy: 'Caramelo', sk_tiger: 'Tigre',
+  target: 'Meta {p}', you: 'Tú', rival: 'Rival', pause: 'Pausa', resume: 'Seguir', restart: 'Reiniciar', quit: 'Salir', rules: 'Reglas',
+  hint_start: 'Desliza en la pantalla para moverte', hint_tap: 'Toca para parar (solo en tierra)',
+  win_title: '¡Ganaste!', lose_title: 'Perdiste', draw_title: 'Empate', next: 'Siguiente', retry: 'Otra vez', home: 'Inicio',
+  res_area: 'Tu tierra', res_rival: 'Tierra rival', res_time: 'Tiempo', res_cuts: 'Colas cortadas',
+  why_lives: 'Sin vidas', why_rival: 'El rival tenía más tierra', why_rlives: 'El rival se quedó sin vidas',
+  t_life: '¡+1 vida!', t_cut: '¡Le cortaste la cola!', t_cutme: '¡Te cortaron la cola!', t_big: '¡Captura enorme!', t_go: '¡Vamos!', t_bonus: 'Vida extra al 50%',
+  back_exit: 'Pulsa otra vez para salir', back: 'Atrás',
+  s_name: 'Nombre', s_name_ph: 'Nombre o apodo', s_lang: 'Idioma', s_theme: 'Tema', s_sound: 'Sonidos', s_vib: 'Vibración', s_ctrl: 'Controles', ctrl_swipe: 'Deslizar', ctrl_pad: 'Botones', s_tutorial: 'Guía inicial', s_backup: 'Copia de seguridad', s_export: 'Exportar copia', s_import: 'Restaurar copia', s_reset: 'Borrar todo',
+  reset_c1: '¿Borrar todo el progreso, estrellas y ajustes?', reset_c2: '¿Seguro? No se puede deshacer.', import_c: 'Restaurar reemplaza todo el progreso actual. ¿Continuar?', import_ok: 'Copia restaurada', import_bad: 'El archivo no parece una copia de SnakeNest', save_fail: 'No se pudo guardar: el almacenamiento está lleno o bloqueado', exported: 'Archivo guardado',
+  th_gold: 'Negro y oro', th_emerald: 'Esmeralda', th_ocean: 'Océano', th_ruby: 'Rubí', th_day: 'Día',
+  ab_version: 'Versión', ab_dev: 'Desarrollador', ab_platform: 'Plataforma', ab_storage: 'Almacenamiento', ab_storage_v: 'Solo en el dispositivo', ab_license: 'Licencia', ab_store: 'Tienda AppNest', ab_share: 'Compartir el juego', ab_feedback: 'Enviar opinión', ab_guide: 'Guía', ab_privacy: 'Privacidad',
+  ab_disc: 'Solo entretenimiento. Sin anuncios ni rastreo: el progreso queda en tu teléfono.',
+  r_title: 'Cómo jugar',
+  r1: 'Eres una serpiente que vive en tierra (la zona de color). El mar azul del centro es lo que hay que conquistar.',
+  r2: 'Desliza para girar. En el mar la serpiente deja una cola.',
+  r3: 'Vuelve a tierra: cada zona de mar cerrada sin criaturas dentro pasa a ser tuya.',
+  r4: 'Las criaturas del mar muerden: si tocan tu cola o tu cabeza en el mar, pierdes una vida. Nunca cruces tu propia cola.',
+  r5: 'Los cangrejos caminan por tierra: aléjate de ellos.',
+  r6: 'Contra un rival: toca su cola y vuelve al inicio. Gana quien tenga más tierra.',
+  r7: 'Estrellas: ★ terminar · ★★ como mucho una caída · ★★★ sin caídas. Al 50% ganas una vida extra.',
+  tut1t: 'Bienvenido a SnakeNest', tut1b: 'Un juego de conquistar terreno: eres una serpiente y el mar te espera.',
+  tut2t: 'Deslizar = girar', tut2b: 'Desliza en cualquier dirección. En el mar la serpiente deja una cola.',
+  tut3t: 'Volver a casa = conquistar', tut3b: 'Cuando la cabeza vuelve a tierra, cada zona cerrada sin criaturas se pinta de tu color.',
+  tut4t: 'Cuidado con las criaturas', tut4b: 'Las criaturas del mar muerden colas y los cangrejos vigilan la tierra. Cuanto más larga la cola, más riesgo.',
+  tut5t: 'Batalla de serpientes', tut5b: 'Contra la máquina: córtale la cola al rival y ten más tierra. ¡Suerte!',
+  skip: 'Saltar', nextb: 'Siguiente', done: '¡Vamos!',
+  yes: 'Sí', no: 'No', cancel: 'Cancelar', ok: 'OK',
+  share_text: '{name} juega SnakeNest: ¡cierra zonas y lucha contra serpientes!', share_anon: 'Juega SnakeNest: ¡cierra zonas y lucha contra serpientes!',
+  daily_res: 'Reto diario', new_skin: 'Nueva serpiente: {s}!', time_left: 'Tiempo', lives: 'Vidas'
+},
+ar: {
+  dir: 'rtl', name: 'العربية',
+  tagline: 'أغلق المناطق · احمِ ذيلك',
+  play_levels: 'المراحل', play_duel: 'ضد الحاسوب', play_daily: 'تحدي اليوم', skins: 'ثعابيني', howto: 'طريقة اللعب', settings: 'الإعدادات', about: 'حول', theme: 'المظهر',
+  levels_title: 'المراحل', level: 'المرحلة {n}', locked: 'مقفلة', rival_badge: 'خصم',
+  duel_title: 'ضد الحاسوب', duel_desc: 'ثعبان الحاسوب يستولي على الأرض بلونه. يفوز من يملك أرضًا أكثر، وقطع الذيل يعيد الخصم إلى البداية.',
+  bot1: 'سهل', bot2: 'متوسط', bot3: 'صعب', bot4: 'بطل', bot1d: 'يغلق زوايا صغيرة ولا ينتبه للخطر', bot2d: 'يختار مناطق أفضل ويحذر أحيانًا', bot3d: 'طمّاع وحذر، ويصطاد الذيول أحيانًا', bot4d: 'الأكثر طمعًا، يصطاد كل ذيل قريب', start: 'ابدأ', wins: 'انتصارات: {n}',
+  daily_title: 'تحدي اليوم', daily_desc: 'ملعب واحد للجميع اليوم. المرحلة نفسها للجميع حتى منتصف الليل.', daily_done: 'أنجزت تحدي اليوم ✓', streak: 'سلسلة: {n} أيام', best: 'أفضل نتيجة اليوم: {p}',
+  skins_title: 'ثعابيني', skin_need: 'يُفتح عند {n} ★', skin_use: 'اختر', skin_on: 'مختار ✓', stars_have: 'لديك {n} ★',
+  sk_green: 'ورقي', sk_coral: 'مرجان', sk_gold: 'ذهبي', sk_ice: 'جليدي', sk_lava: 'حمم', sk_night: 'ليلي', sk_candy: 'حلوى', sk_tiger: 'نمر',
+  target: 'الهدف {p}', you: 'أنت', rival: 'الخصم', pause: 'إيقاف مؤقت', resume: 'متابعة', restart: 'من جديد', quit: 'خروج', rules: 'القواعد',
+  hint_start: 'اسحب على الشاشة للتحرك', hint_tap: 'النقر يوقف (على اليابسة فقط)',
+  win_title: 'فزت!', lose_title: 'خسرت', draw_title: 'تعادل', next: 'المرحلة التالية', retry: 'مرة أخرى', home: 'الرئيسية',
+  res_area: 'أرضك', res_rival: 'أرض الخصم', res_time: 'الوقت', res_cuts: 'ذيول قطعتها',
+  why_lives: 'نفدت الأرواح', why_rival: 'الخصم يملك أرضًا أكثر', why_rlives: 'نفدت أرواح الخصم',
+  t_life: '+1 روح!', t_cut: 'قطعت ذيله!', t_cutme: 'قُطع ذيلك!', t_big: 'استيلاء ضخم!', t_go: 'هيا!', t_bonus: 'روح إضافية عند 50%',
+  back_exit: 'اضغط مرة أخرى للخروج', back: 'رجوع',
+  s_name: 'اسم المستخدم', s_name_ph: 'الاسم أو اللقب', s_lang: 'اللغة', s_theme: 'المظهر', s_sound: 'الأصوات', s_vib: 'الاهتزاز', s_ctrl: 'التحكم', ctrl_swipe: 'السحب', ctrl_pad: 'أزرار الاتجاه', s_tutorial: 'دليل البداية', s_backup: 'نسخ احتياطي', s_export: 'تصدير نسخة', s_import: 'استعادة نسخة', s_reset: 'حذف الكل',
+  reset_c1: 'حذف كل التقدم والنجوم والإعدادات؟', reset_c2: 'هل أنت متأكد؟ لا يمكن التراجع.', import_c: 'الاستعادة ستستبدل كل التقدم الحالي. متابعة؟', import_ok: 'تمت الاستعادة', import_bad: 'الملف لا يبدو نسخة من SnakeNest', save_fail: 'فشل الحفظ — مساحة الجهاز ممتلئة أو محجوبة', exported: 'تم حفظ الملف',
+  th_gold: 'أسود وذهبي', th_emerald: 'زمرد', th_ocean: 'محيط', th_ruby: 'ياقوت', th_day: 'نهار',
+  ab_version: 'الإصدار', ab_dev: 'المطوّر', ab_platform: 'المنصة', ab_storage: 'التخزين', ab_storage_v: 'على الجهاز فقط', ab_license: 'الترخيص', ab_store: 'متجر AppNest', ab_share: 'شارك اللعبة', ab_feedback: 'أرسل ملاحظات', ab_guide: 'الدليل', ab_privacy: 'سياسة الخصوصية',
+  ab_disc: 'للتسلية فقط. بلا إعلانات ولا تتبع — كل التقدم يبقى في هاتفك.',
+  r_title: 'طريقة اللعب',
+  r1: 'أنت ثعبان يعيش على اليابسة (المنطقة الملونة). البحر الأزرق في الوسط هو ما يجب احتلاله.',
+  r2: 'اسحب للالتفاف. عندما يدخل الثعبان البحر يترك ذيلًا خلفه.',
+  r3: 'عد إلى اليابسة — كل جزء مغلق من البحر بلا مخلوقات يصبح لك.',
+  r4: 'مخلوقات البحر تعض: إذا لمست ذيلك أو رأسك وأنت في البحر تخسر روحًا. لا تعبر ذيلك أبدًا.',
+  r5: 'السرطانات تمشي على اليابسة — ابتعد عنها.',
+  r6: 'ضد خصم: المس ذيله فيعود إلى البداية. يفوز من يملك أرضًا أكثر.',
+  r7: 'النجوم: ★ إنهاء · ★★ سقوط واحد على الأكثر · ★★★ بلا سقوط. عند 50% تحصل على روح إضافية.',
+  tut1t: 'أهلًا بك في SnakeNest', tut1b: 'لعبة احتلال أرض: أنت ثعبان، والبحر في الوسط ينتظرك.',
+  tut2t: 'السحب = الالتفاف', tut2b: 'اسحب في أي اتجاه. في البحر يترك الثعبان ذيلًا.',
+  tut3t: 'العودة = الاحتلال', tut3b: 'عندما يعود الرأس إلى اليابسة، تتلون كل منطقة مغلقة بلا مخلوقات بلونك.',
+  tut4t: 'احذر المخلوقات', tut4b: 'مخلوقات البحر تعض الذيول والسرطانات تحرس اليابسة. كلما طال الذيل زاد الخطر.',
+  tut5t: 'معركة الثعابين', tut5b: 'ضد الحاسوب: اقطع ذيل الخصم واحتل أرضًا أكثر منه. بالتوفيق!',
+  skip: 'تخطَّ', nextb: 'التالي', done: 'هيا!',
+  yes: 'نعم', no: 'لا', cancel: 'إلغاء', ok: 'موافق',
+  share_text: '{name} يلعب SnakeNest — أغلق المناطق وقاتل الثعابين!', share_anon: 'تعال العب SnakeNest — أغلق المناطق وقاتل الثعابين!',
+  daily_res: 'تحدي اليوم', new_skin: 'ثعبان جديد: {s}!', time_left: 'الوقت', lives: 'الأرواح'
+}
+};
+</script>
+<script>/* SnakeNest app shell + renderer */
+(function () {
+'use strict';
+var APP_VERSION = '0.1.0';
+var E = window.SNE;
+var $ = function (id) { return document.getElementById(id); };
+var KEY = 'sk_data';
+
+/* ───── storage shim ───── */
+var mem = {};
+var store = {
+  get: function (k) { try { return localStorage.getItem(k); } catch (e) { return mem[k] == null ? null : mem[k]; } },
+  set: function (k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { mem[k] = v; return false; } },
+  del: function (k) { try { localStorage.removeItem(k); } catch (e) {} delete mem[k]; }
+};
+function defData() {
+  return { v: 1, stars: {}, skin: 'green', set: { lang: 'he', theme: 'gold', sound: true, vib: true, ctrl: 'swipe', name: '' },
+    daily: { date: 0, done: false, best: 0, streak: 0, last: 0 }, duel: { 1: 0, 2: 0, 3: 0, 4: 0 }, duelSel: 2, stats: { games: 0, cuts: 0 }, tut: false };
+}
+var D = defData();
+try { var raw = store.get(KEY); if (raw) { var p = JSON.parse(raw); if (p && p.v === 1) D = merge(defData(), p); } } catch (e) {}
+function merge(a, b) { for (var k in b) { if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k]) && a[k] && typeof a[k] === 'object') a[k] = merge(a[k], b[k]); else a[k] = b[k]; } return a; }
+function save() { if (!store.set(KEY, JSON.stringify(D))) snack(T('save_fail')); }
+
+/* ───── i18n ───── */
+function T(k, vars) {
+  var L = LANG[D.set.lang] || LANG.he, s = L[k];
+  if (s == null) s = LANG.en[k];
+  if (s == null) s = k;
+  if (vars) for (var v in vars) s = s.split('{' + v + '}').join(vars[v]);
+  return s;
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function pc(x) { return '<bdi>' + Math.round(x * 100) + '%</bdi>'; }
+function applyLang() {
+  var L = LANG[D.set.lang] || LANG.he;
+  document.documentElement.lang = D.set.lang; document.documentElement.dir = L.dir;
+  document.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = T(el.getAttribute('data-t')); });
+  document.querySelectorAll('.ver').forEach(function (el) { el.textContent = APP_VERSION; });
+  refreshBackLabels();
+}
+var THEMES = ['gold', 'emerald', 'ocean', 'ruby', 'day'];
+function applyTheme() {
+  document.body.className = document.body.className.replace(/\bth-\w+/g, '').trim();
+  if (D.set.theme !== 'gold') document.body.classList.add('th-' + D.set.theme);
+  document.body.classList.toggle('pad-on', D.set.ctrl === 'pad');
+  var m = document.querySelector('meta[name=theme-color]'); if (m) m.content = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#0b0b0d';
+}
+
+/* ───── snack ───── */
+var snT;
+function snack(msg, ms) { var s = $('snack'); s.textContent = msg; s.classList.add('on'); clearTimeout(snT); snT = setTimeout(function () { s.classList.remove('on'); }, ms || 2200); }
+
+/* ───── navigation + phone back button ───── */
+var nav = ['home'], modals = [];
+var hist = { guard: false, ignore: 0 }, exitArm = 0, exitT;
+function syncHistory() {
+  var need = !exitArm;
+  if (need && !hist.guard) { history.pushState({ g: 1 }, ''); hist.guard = true; }
+  else if (!need && hist.guard) { hist.guard = false; hist.ignore++; history.back(); }
+}
+window.addEventListener('popstate', function () {
+  if (hist.ignore > 0) { hist.ignore--; return; }
+  hist.guard = false; goBack(); syncHistory();
+});
+var SCREEN_NAMES = { home: 'home', levels: 'play_levels', duel: 'play_duel', daily: 'play_daily', skins: 'skins', rules: 'howto', settings: 'settings', about: 'about', game: 'home' };
+function cur() { return nav[nav.length - 1]; }
+function show(id) {
+  document.querySelectorAll('.screen').forEach(function (s) { s.classList.toggle('on', s.id === id); });
+  if (RENDER[id]) RENDER[id]();
+  refreshBackLabels();
+  if (id === 'home') demo.start(); else demo.stop();
+}
+function go(id) { if (cur() === id) return; nav.push(id); show(id); syncHistory(); }
+function refreshBackLabels() {
+  document.querySelectorAll('[data-back]').forEach(function (b) {
+    var sc = b.closest('.screen'), i = nav.lastIndexOf(sc.id), prev = i > 0 ? nav[i - 1] : 'home';
+    var arrow = (LANG[D.set.lang] || LANG.he).dir === 'rtl' ? '→ ' : '← ';
+    b.textContent = arrow + T(SCREEN_NAMES[prev] || 'home');
+  });
+}
+function goBack() {
+  if (modals.length) { var m = modals[modals.length - 1]; if (m.onBack) m.onBack(); else closeModal(); return; }
+  if (cur() === 'game') { G.pauseMenu(); return; }
+  if (nav.length > 1) { nav.pop(); show(cur()); return; }
+  // home → arm exit
+  exitArm = 1; snack(T('back_exit'), 2000); clearTimeout(exitT);
+  exitT = setTimeout(function () { exitArm = 0; syncHistory(); }, 2000);
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-back]'); if (b) { goBack(); return; }
+  var g = e.target.closest('[data-go]'); if (g) { sfx.click(); go(g.getAttribute('data-go')); }
+});
+
+/* ───── modals ───── */
+function modal(html, opts) {
+  opts = opts || {};
+  var ov = document.createElement('div'); ov.className = 'ov';
+  ov.innerHTML = '<div class="md ' + (opts.cls || '') + '">' + html + '</div>';
+  var born = Date.now();
+  ov.addEventListener('click', function (e) {
+    if (Date.now() - born < 500) { e.stopPropagation(); e.preventDefault(); return; } // ghost-click guard
+    if (e.target === ov && opts.dismiss !== false) goBack();
+  }, true);
+  document.body.appendChild(ov);
+  var m = { el: ov, onBack: opts.onBack, onClose: opts.onClose };
+  modals.push(m);
+  return m;
+}
+function closeModal(m) {
+  m = m || modals[modals.length - 1]; if (!m) return;
+  var i = modals.indexOf(m); if (i >= 0) modals.splice(i, 1);
+  if (m.el.parentNode) m.el.parentNode.removeChild(m.el);
+  if (m.onClose) m.onClose();
+}
+function confirmBox(msg, cb) {
+  var m = modal('<p style="font-size:17px;line-height:1.5">' + esc(msg) + '</p><div class="btns"><button class="btn pri" id="cYes">' + T('yes') + '</button><button class="btn" id="cNo">' + T('cancel') + '</button></div>');
+  m.el.querySelector('#cYes').onclick = function () { closeModal(m); cb(); };
+  m.el.querySelector('#cNo').onclick = function () { closeModal(m); };
+}
+
+/* ───── sound ───── */
+var AC = null;
+function ac() { if (!D.set.sound) return null; try { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) { return null; } return AC; }
+function tone(f, d, type, v, f2, delay) {
+  var a = ac(); if (!a) return;
+  var t = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v || 0.15, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + 0.05);
+}
+function noise(d, v, hp) {
+  var a = ac(); if (!a) return;
+  var len = Math.floor(a.sampleRate * d), buf = a.createBuffer(1, len, a.sampleRate), ch = buf.getChannelData(0);
+  for (var i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  var s = a.createBufferSource(), g = a.createGain(), f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = hp || 1200;
+  s.buffer = buf; g.gain.value = v || 0.25; s.connect(f); f.connect(g); g.connect(a.destination); s.start();
+}
+function vib(p) { if (D.set.vib && navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} }
+var sfx = {
+  click: function () { tone(660, 0.05, 'triangle', 0.06); },
+  turn: function () { tone(420, 0.03, 'square', 0.025); },
+  cap: function (p) { var base = 440 + Math.min(400, p * 2400); [0, 4, 7, 12].forEach(function (s, i) { tone(base * Math.pow(2, s / 12), 0.16, 'triangle', 0.09, 0, i * 0.055); }); },
+  die: function () { noise(0.35, 0.3, 900); tone(320, 0.45, 'sawtooth', 0.08, 60); },
+  cut: function () { tone(1500, 0.06, 'square', 0.07, 600); tone(900, 0.12, 'triangle', 0.08, 1800, 0.06); },
+  life: function () { [0, 7, 12, 16].forEach(function (s, i) { tone(660 * Math.pow(2, s / 12), 0.14, 'sine', 0.1, 0, i * 0.07); }); },
+  win: function () { [0, 4, 7, 12, 7, 12, 16].forEach(function (s, i) { tone(523 * Math.pow(2, s / 12), 0.2, 'triangle', 0.1, 0, i * 0.11); }); },
+  lose: function () { [7, 4, 0, -5].forEach(function (s, i) { tone(392 * Math.pow(2, s / 12), 0.28, 'sine', 0.1, 0, i * 0.18); }); }
+};
+
+/* ───── skins ───── */
+var SKINS = [
+  { id: 'green', need: 0, body: '#43c463', out: '#1b6630', head: '#56d877', pat: 'dots', pc: '#c4f7d2', land: '#3a9e52', land2: '#4fb866' },
+  { id: 'coral', need: 3, body: '#ff7f6e', out: '#a5372d', head: '#ff9585', pat: 'stripes', pc: '#ffd6cf', land: '#d9655b', land2: '#ec7c70' },
+  { id: 'gold', need: 8, body: '#f3c534', out: '#8a6806', head: '#ffd654', pat: 'diamond', pc: '#fff3b8', land: '#c99d21', land2: '#ddb33a' },
+  { id: 'ice', need: 15, body: '#86dcff', out: '#2c7aa3', head: '#a3e6ff', pat: 'dots', pc: '#ffffff', land: '#58afd4', land2: '#74c3e3' },
+  { id: 'lava', need: 24, body: '#ff6b1f', out: '#6e1a00', head: '#ff8640', pat: 'stripes', pc: '#ffd23a', land: '#c84d17', land2: '#de6326' },
+  { id: 'night', need: 36, body: '#434a86', out: '#13153a', head: '#5660a6', pat: 'dots', pc: '#a9b6ff', land: '#3f4687', land2: '#5059a0' },
+  { id: 'candy', need: 50, body: '#ff92d2', out: '#9e3a78', head: '#ffadde', pat: 'rainbow', pc: '#fff', land: '#d968aa', land2: '#e985bf' },
+  { id: 'tiger', need: 70, body: '#ffa21f', out: '#5a3000', head: '#ffb545', pat: 'stripes', pc: '#1d1306', land: '#d9861b', land2: '#e99b32' }
+];
+var RIVAL = { id: 'viper', body: '#a95af8', out: '#45178c', head: '#bd7cff', pat: 'diamond', pc: '#f1ddff', land: '#7a4fd0', land2: '#8f64e0' };
+function skinById(id) { for (var i = 0; i < SKINS.length; i++) if (SKINS[i].id === id) return SKINS[i]; return SKINS[0]; }
+function totalStars() { var n = 0; for (var k in D.stars) n += D.stars[k]; return n; }
+
+/* ───── renderer ───── */
+var NEU_A = '#b88a4c', NEU_B = '#c99a5a';
+function hash(i) { i = Math.imul(i ^ 0x9e3779b9, 0x85ebca6b); i ^= i >>> 13; i = Math.imul(i, 0xc2b2ae35); return ((i ^ (i >>> 16)) >>> 0) / 4294967296; }
+function makeView() { return { cs: 10, ox: 0, oy: 0, w: 0, h: 0, dpr: 1, land: null, lver: -1, lcs: 0, parts: [], texts: [], flash: [], shake: 0 }; }
+function fitView(V, cv, S) {
+  var r = cv.getBoundingClientRect(), dpr = Math.min(3, window.devicePixelRatio || 1);
+  var w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  V.w = w; V.h = h; V.dpr = dpr;
+  V.cs = Math.min(w / S.W, h / S.H);
+  V.ox = (w - V.cs * S.W) / 2; V.oy = (h - V.cs * S.H) / 2;
+}
+function buildLand(V, S, sk) {
+  var cs = V.cs, dpr = V.dpr, W = S.W, H = S.H;
+  var c = V.land || document.createElement('canvas');
+  c.width = Math.ceil(W * cs * dpr); c.height = Math.ceil(H * cs * dpr);
+  var x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W * cs, H * cs);
+  var cols = [null, [NEU_A, NEU_B, '#a37640'], [sk[0].land, sk[0].land2, sk[0].out], [sk[1].land, sk[1].land2, sk[1].out]];
+  var g = S.grid, i, cx, cy, v;
+  for (cy = 0; cy < H; cy++) for (cx = 0; cx < W; cx++) {
+    i = cy * W + cx; v = g[i]; if (!v) continue;
+    var cl = cols[v]; x.fillStyle = cl[0]; x.fillRect(cx * cs - 0.3, cy * cs - 0.3, cs + 0.6, cs + 0.6);
+    var hh = hash(i);
+    x.fillStyle = cl[1]; x.globalAlpha = 0.7;
+    x.fillRect(cx * cs + hh * cs * 0.6, cy * cs + hash(i + 77) * cs * 0.6, cs * 0.22, cs * 0.22);
+    if (hh > 0.55) { x.fillStyle = cl[2]; x.globalAlpha = 0.25; x.fillRect(cx * cs + hash(i + 9) * cs * 0.7, cy * cs + hh * cs * 0.6, cs * 0.18, cs * 0.18); }
+    x.globalAlpha = 1;
+  }
+  // shores + shadows
+  var sw = Math.max(1.2, cs * 0.16);
+  for (cy = 0; cy < H; cy++) for (cx = 0; cx < W; cx++) {
+    i = cy * W + cx; if (g[i]) continue;
+    // sea cell: shadow from land above/left, foam lines on edges touching land
+    if (cy > 0 && g[i - W]) { x.fillStyle = 'rgba(0,0,0,.28)'; x.fillRect(cx * cs, cy * cs, cs, cs * 0.32); x.fillStyle = 'rgba(255,255,255,.55)'; x.fillRect(cx * cs, cy * cs - sw * 0.5, cs, sw); }
+    if (cx > 0 && g[i - 1]) { x.fillStyle = 'rgba(0,0,0,.2)'; x.fillRect(cx * cs, cy * cs, cs * 0.25, cs); x.fillStyle = 'rgba(255,255,255,.5)'; x.fillRect(cx * cs - sw * 0.5, cy * cs, sw, cs); }
+    if (cy < H - 1 && g[i + W]) { x.fillStyle = 'rgba(255,255,255,.5)'; x.fillRect(cx * cs, (cy + 1) * cs - sw * 0.5, cs, sw); }
+    if (cx < W - 1 && g[i + 1]) { x.fillStyle = 'rgba(255,255,255,.5)'; x.fillRect((cx + 1) * cs - sw * 0.5, cy * cs, sw, cs); }
+  }
+  // owner borders (darker line between different owners)
+  x.strokeStyle = 'rgba(0,0,0,.18)'; x.lineWidth = 1;
+  V.land = c; V.lver = S.ver; V.lcs = cs;
+}
+function cellXY(S, c) { return [c % S.W, (c / S.W) | 0]; }
+
+function drawSea(x, V, S, t) {
+  var cs = V.cs, W = S.W * cs, H = S.H * cs;
+  var gr = x.createLinearGradient(0, 0, W * 0.3, H);
+  gr.addColorStop(0, '#1679ad'); gr.addColorStop(0.5, '#0d5c8f'); gr.addColorStop(1, '#083f69');
+  x.fillStyle = gr; x.fillRect(0, 0, W, H);
+  // caustic blobs
+  x.globalAlpha = 0.04; x.fillStyle = '#bff3ff';
+  for (var k = 0; k < 7; k++) {
+    var bx = (Math.sin(t * 0.15 + k * 1.7) * 0.5 + 0.5) * W, by = (Math.cos(t * 0.11 + k * 2.3) * 0.5 + 0.5) * H;
+    x.beginPath(); x.arc(bx, by, cs * (4 + (k % 3) * 2), 0, 6.283); x.fill();
+  }
+  // waves
+  x.globalAlpha = 0.16; x.strokeStyle = '#d6f6ff'; x.lineWidth = Math.max(1, cs * 0.1); x.lineCap = 'round';
+  for (var r = 0; r < S.H; r += 3) {
+    var y0 = (r + 1.5) * cs, off = (r * 37) % 11;
+    for (var s = -1; s < S.W; s += 6) {
+      var xs = (s + off * 0.5 + (t * 0.6 + r * 0.3) % 6) * cs;
+      x.beginPath(); x.moveTo(xs, y0);
+      x.quadraticCurveTo(xs + cs * 0.9, y0 - cs * 0.45, xs + cs * 1.8, y0); x.quadraticCurveTo(xs + cs * 2.7, y0 + cs * 0.45, xs + cs * 3.6, y0);
+      x.stroke();
+    }
+  }
+  x.globalAlpha = 1;
+}
+
+function snakePts(S, s) {
+  var pts = [], i, c;
+  if (s.trail.length) {
+    var f = cellXY(S, s.trail[0]), best = null;
+    for (var d = 0; d < 4; d++) { var nx = f[0] + E.DX[d], ny = f[1] + E.DY[d]; if (nx >= 0 && ny >= 0 && nx < S.W && ny < S.H && S.grid[ny * S.W + nx]) { best = [nx, ny]; if (s.hist.indexOf(ny * S.W + nx) >= 0) break; } }
+    if (best) pts.push(best);
+    for (i = 0; i < s.trail.length; i++) pts.push(cellXY(S, s.trail[i]));
+    // head is last trail cell
+    if (pts.length && (pts[pts.length - 1][0] !== s.x || pts[pts.length - 1][1] !== s.y)) pts.push([s.x, s.y]);
+  } else {
+    for (i = Math.min(s.hist.length, 5) - 1; i >= 0; i--) pts.push(cellXY(S, s.hist[i]));
+    pts.push([s.x, s.y]);
+  }
+  // interpolated head
+  var hx = s.x, hy = s.y;
+  if (s.moving && s.dead <= 0) {
+    var nx2 = s.x + E.DX[s.dir], ny2 = s.y + E.DY[s.dir];
+    if (nx2 >= 0 && ny2 >= 0 && nx2 < S.W && ny2 < S.H) { var a = Math.min(0.95, s.acc); hx += E.DX[s.dir] * a; hy += E.DY[s.dir] * a; }
+  }
+  pts.push([hx, hy]);
+  // drop consecutive dupes
+  var out = [];
+  for (i = 0; i < pts.length; i++) if (!out.length || out[out.length - 1][0] !== pts[i][0] || out[out.length - 1][1] !== pts[i][1]) out.push(pts[i]);
+  // avoid weird jumps (respawn)
+  for (i = out.length - 2; i >= 0; i--) if (Math.abs(out[i][0] - out[i + 1][0]) + Math.abs(out[i][1] - out[i + 1][1]) > 1.6) { out = out.slice(i + 1); break; }
+  return out;
+}
+
+function drawSnake(x, V, S, s, sk, t) {
+  if (s.dead > 0 || (s.lives <= 0)) return;
+  var cs = V.cs, pts = snakePts(S, s);
+  if (s.inv > 0 && Math.floor(t * 10) % 2) x.globalAlpha = 0.45;
+  var path = function () { x.beginPath(); for (var i = 0; i < pts.length; i++) { var px = (pts[i][0] + .5) * cs, py = (pts[i][1] + .5) * cs; if (i) x.lineTo(px, py); else x.moveTo(px, py); } };
+  x.lineJoin = 'round'; x.lineCap = 'round';
+  if (s.trail.length) { // danger glow
+    path(); x.strokeStyle = 'rgba(255,255,255,' + (0.18 + 0.12 * Math.sin(t * 8)) + ')'; x.lineWidth = cs * 1.25; x.stroke();
+  }
+  path(); x.strokeStyle = sk.out; x.lineWidth = cs * 0.9; x.stroke();
+  path(); x.strokeStyle = sk.body; x.lineWidth = cs * 0.66; x.stroke();
+  // pattern
+  for (var i = 0; i < pts.length - 1; i++) {
+    var px = (pts[i][0] + .5) * cs, py = (pts[i][1] + .5) * cs;
+    var nx = (pts[i + 1][0] + .5) * cs, ny = (pts[i + 1][1] + .5) * cs, mx = (px + nx) / 2, my = (py + ny) / 2, horiz = Math.abs(nx - px) > Math.abs(ny - py);
+    if (sk.pat === 'dots') { x.fillStyle = sk.pc; x.beginPath(); x.arc(px, py, cs * 0.13, 0, 6.283); x.fill(); }
+    else if (sk.pat === 'stripes') { x.strokeStyle = sk.pc; x.lineWidth = cs * 0.14; x.beginPath(); if (horiz) { x.moveTo(mx, my - cs * 0.3); x.lineTo(mx, my + cs * 0.3); } else { x.moveTo(mx - cs * 0.3, my); x.lineTo(mx + cs * 0.3, my); } x.stroke(); }
+    else if (sk.pat === 'diamond') { x.fillStyle = sk.pc; x.beginPath(); x.moveTo(px, py - cs * .2); x.lineTo(px + cs * .2, py); x.lineTo(px, py + cs * .2); x.lineTo(px - cs * .2, py); x.fill(); }
+    else if (sk.pat === 'rainbow') { x.fillStyle = 'hsl(' + ((i * 40 + t * 120) % 360) + ',90%,65%)'; x.beginPath(); x.arc(px, py, cs * 0.2, 0, 6.283); x.fill(); }
+  }
+  // head
+  var h = pts[pts.length - 1], hx = (h[0] + .5) * cs, hy = (h[1] + .5) * cs, d = s.dir, dx = E.DX[d], dy = E.DY[d];
+  var R = cs * 0.74;
+  // tongue
+  if ((t * 1.3 + s.id) % 2 < 0.25) {
+    x.strokeStyle = '#ff3355'; x.lineWidth = Math.max(1, cs * 0.1);
+    var tx = hx + dx * R * 1.7, ty = hy + dy * R * 1.7;
+    x.beginPath(); x.moveTo(hx + dx * R * .8, hy + dy * R * .8); x.lineTo(tx, ty);
+    x.lineTo(tx + (dx - dy) * R * .3, ty + (dy + dx) * R * .3); x.moveTo(tx, ty); x.lineTo(tx + (dx + dy) * R * .3, ty + (dy - dx) * R * .3); x.stroke();
+  }
+  x.fillStyle = sk.out; x.beginPath(); x.ellipse(hx + dx * R * .15, hy + dy * R * .15, R * 1.08, R * 1.08, 0, 0, 6.283); x.fill();
+  x.fillStyle = sk.head; x.beginPath(); x.arc(hx + dx * R * .15, hy + dy * R * .15, R * 0.92, 0, 6.283); x.fill();
+  // eyes
+  var px2 = -dy, py2 = dx, ex = hx + dx * R * .35, ey = hy + dy * R * .35, blink = ((t + s.id * 1.3) % 3.2) < 0.12;
+  for (var k = -1; k <= 1; k += 2) {
+    var ecx = ex + px2 * R * .45 * k, ecy = ey + py2 * R * .45 * k;
+    x.fillStyle = '#fff'; x.beginPath(); x.arc(ecx, ecy, R * .36, 0, 6.283); x.fill();
+    if (blink) { x.strokeStyle = sk.out; x.lineWidth = R * .15; x.beginPath(); x.moveTo(ecx - R * .3, ecy); x.lineTo(ecx + R * .3, ecy); x.stroke(); }
+    else { x.fillStyle = '#111'; x.beginPath(); x.arc(ecx + dx * R * .14, ecy + dy * R * .14, R * .19, 0, 6.283); x.fill(); x.fillStyle = '#fff'; x.beginPath(); x.arc(ecx + dx * R * .14 - R * .06, ecy + dy * R * .14 - R * .07, R * .07, 0, 6.283); x.fill(); }
+  }
+  x.globalAlpha = 1;
+}
+
+function drawBall(x, V, b, t, S) {
+  var cs = V.cs, bx = b.x * cs, by = b.y * cs, R = b.r * cs * 1.35;
+  if (b.big) { // jellyfish
+    x.strokeStyle = 'rgba(232,170,255,.8)'; x.lineWidth = Math.max(1, cs * .12);
+    for (var k = -2; k <= 2; k++) { x.beginPath(); x.moveTo(bx + k * R * .3, by + R * .3); x.quadraticCurveTo(bx + k * R * .3 + Math.sin(t * 5 + k) * R * .3, by + R * .9, bx + k * R * .28, by + R * 1.35); x.stroke(); }
+    var g = x.createRadialGradient(bx - R * .3, by - R * .4, R * .1, bx, by, R);
+    g.addColorStop(0, '#ffe0ff'); g.addColorStop(1, '#b45df0');
+    x.fillStyle = g; x.beginPath(); x.arc(bx, by, R, Math.PI, 0); x.quadraticCurveTo(bx, by + R * .65, bx - R, by); x.fill();
+  } else {
+    var sp = 8, rot = b.ph * 0.4;
+    x.fillStyle = '#c96a12';
+    for (var j = 0; j < sp; j++) { var a = rot + j * 6.283 / sp; x.beginPath(); x.moveTo(bx + Math.cos(a - .25) * R * .85, by + Math.sin(a - .25) * R * .85); x.lineTo(bx + Math.cos(a) * R * 1.35, by + Math.sin(a) * R * 1.35); x.lineTo(bx + Math.cos(a + .25) * R * .85, by + Math.sin(a + .25) * R * .85); x.fill(); }
+    var g2 = x.createRadialGradient(bx - R * .3, by - R * .35, R * .1, bx, by, R);
+    g2.addColorStop(0, '#fff3a6'); g2.addColorStop(1, '#f39a1e');
+    x.fillStyle = g2; x.beginPath(); x.arc(bx, by, R, 0, 6.283); x.fill();
+  }
+  // eyes look at player head
+  var p = S.snakes[0], lx = (p.x + .5) * cs - bx, ly = (p.y + .5) * cs - by, ll = Math.hypot(lx, ly) || 1; lx /= ll; ly /= ll;
+  var ey = by - R * (b.big ? .35 : .15);
+  for (var e = -1; e <= 1; e += 2) {
+    var ex = bx + e * R * .36;
+    x.fillStyle = '#fff'; x.beginPath(); x.arc(ex, ey, R * .27, 0, 6.283); x.fill();
+    x.fillStyle = '#1a1020'; x.beginPath(); x.arc(ex + lx * R * .1, ey + ly * R * .1, R * .14, 0, 6.283); x.fill();
+  }
+  if (!b.big) { x.strokeStyle = '#7a3a05'; x.lineWidth = Math.max(1, R * .1); x.beginPath(); x.arc(bx, by + R * .3, R * .22, 0.15 * Math.PI, 0.85 * Math.PI); x.stroke(); }
+}
+function drawCrab(x, V, c, t) {
+  var cs = V.cs, cx = c.x * cs, cy = c.y * cs, R = cs * .78, open = Math.sin(c.ph) * .35;
+  x.strokeStyle = '#8d1f1f'; x.lineWidth = Math.max(1, cs * .1);
+  for (var k = -1; k <= 1; k += 2) for (var l = 0; l < 3; l++) { var ly = cy + (l - 1) * R * .38, wig = Math.sin(c.ph + l) * R * .12; x.beginPath(); x.moveTo(cx + k * R * .6, ly); x.lineTo(cx + k * R * 1.15, ly + R * .25 + wig); x.stroke(); }
+  for (var m = -1; m <= 1; m += 2) {
+    var clx = cx + m * R * .9, cly = cy - R * .8;
+    x.fillStyle = '#e63b3b'; x.beginPath(); x.arc(clx, cly, R * .38, (m < 0 ? 0.2 : -1.1) + open, (m < 0 ? 4.6 : 3.3) - open); x.lineTo(clx, cly); x.fill();
+  }
+  var g = x.createRadialGradient(cx - R * .3, cy - R * .3, R * .1, cx, cy, R);
+  g.addColorStop(0, '#ff8a7a'); g.addColorStop(1, '#d22c2c');
+  x.fillStyle = g; x.beginPath(); x.ellipse(cx, cy, R * .82, R * .62, 0, 0, 6.283); x.fill();
+  for (var e = -1; e <= 1; e += 2) { x.fillStyle = '#fff'; x.beginPath(); x.arc(cx + e * R * .28, cy - R * .5, R * .2, 0, 6.283); x.fill(); x.fillStyle = '#111'; x.beginPath(); x.arc(cx + e * R * .28, cy - R * .52, R * .1, 0, 6.283); x.fill(); }
+}
+
+function drawField(cv, V, S, sk, t, dt) {
+  fitView(V, cv, S);
+  if (V.lver !== S.ver || V.lcs !== V.cs || !V.land) buildLand(V, S, sk);
+  var x = cv.getContext('2d'), cs = V.cs;
+  x.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
+  x.fillStyle = '#05101a'; x.fillRect(0, 0, V.w, V.h);
+  var sx = 0, sy = 0;
+  if (V.shake > 0) { V.shake -= dt; sx = (Math.random() - .5) * cs * .8; sy = (Math.random() - .5) * cs * .8; }
+  x.translate(V.ox + sx, V.oy + sy);
+  drawSea(x, V, S, t);
+  x.drawImage(V.land, 0, 0, S.W * cs, S.H * cs);
+  // capture flash
+  for (var f = V.flash.length - 1; f >= 0; f--) {
+    var fl = V.flash[f], age = t - fl.t0; if (age > 0.6) { V.flash.splice(f, 1); continue; }
+    x.fillStyle = 'rgba(255,255,230,' + (0.6 * (1 - age / 0.6)) + ')';
+    for (var j = 0; j < fl.cells.length; j++) { var c = fl.cells[j]; x.fillRect((c % S.W) * cs, ((c / S.W) | 0) * cs, cs + .5, cs + .5); }
+  }
+  for (var b = 0; b < S.crabs.length; b++) drawCrab(x, V, S.crabs[b], t);
+  for (var i = S.snakes.length - 1; i >= 0; i--) drawSnake(x, V, S, S.snakes[i], sk[i], t);
+  for (b = 0; b < S.balls.length; b++) drawBall(x, V, S.balls[b], t, S);
+  // particles
+  for (i = V.parts.length - 1; i >= 0; i--) {
+    var p = V.parts[i]; p.life -= dt; if (p.life <= 0) { V.parts.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 6 * dt;
+    x.globalAlpha = Math.min(1, p.life * 2); x.fillStyle = p.col; x.beginPath(); x.arc(p.x * cs, p.y * cs, p.r * cs, 0, 6.283); x.fill();
+  }
+  x.globalAlpha = 1;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  for (i = V.texts.length - 1; i >= 0; i--) {
+    var tx = V.texts[i]; tx.life -= dt; if (tx.life <= 0) { V.texts.splice(i, 1); continue; }
+    tx.y -= dt * 1.6;
+    x.globalAlpha = Math.min(1, tx.life * 1.5); x.font = '900 ' + Math.round(cs * (tx.big ? 2.2 : 1.6)) + 'px system-ui,sans-serif';
+    x.lineWidth = cs * .35; x.strokeStyle = 'rgba(0,0,0,.7)'; x.strokeText(tx.s, tx.x * cs, tx.y * cs); x.fillStyle = tx.col; x.fillText(tx.s, tx.x * cs, tx.y * cs);
+  }
+  x.globalAlpha = 1;
+  x.setTransform(1, 0, 0, 1, 0, 0);
+}
+function burst(V, x, y, col, n, sp) { for (var i = 0; i < n; i++) { var a = Math.random() * 6.283, v = (0.5 + Math.random()) * (sp || 6); V.parts.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 2, r: 0.12 + Math.random() * 0.2, life: 0.5 + Math.random() * 0.5, col: col }); } }
+function handleFx(V, S, sk, ev, t, quiet) {
+  for (var i = 0; i < ev.length; i++) {
+    var e = ev[i];
+    if (e.t === 'cap') {
+      V.flash.push({ cells: e.cells, t0: t });
+      var s = S.snakes[e.id - 1], col = e.id === 1 ? sk[0].pc : sk[1].pc;
+      for (var k = 0; k < Math.min(26, e.cells.length); k++) { var c = e.cells[Math.floor(Math.random() * e.cells.length)]; burst(V, c % S.W + .5, ((c / S.W) | 0) + .5, k % 2 ? '#fff' : col, 1, 3); }
+      if (s && e.pct >= 0.005) V.texts.push({ x: s.x + .5, y: s.y - .5, s: '+' + Math.max(1, Math.round(e.pct * 100)) + '%', col: e.id === 1 ? '#fff6a8' : '#e9cdff', life: 1.2, big: e.pct > 0.08 });
+    } else if (e.t === 'die') {
+      var sn = S.snakes[e.id - 1]; burst(V, e.x + .5, e.y + .5, sk[e.id - 1].body, 28, 8); burst(V, e.x + .5, e.y + .5, '#fff', 8, 5);
+      if (!quiet) V.shake = 0.3;
+    } else if (e.t === 'cut') {
+      V.texts.push({ x: e.x + .5, y: e.y, s: '✂', col: '#fff', life: 1, big: true });
+    }
+  }
+}
+
+/* ───── home demo ───── */
+var demo = (function () {
+  var S, V = makeView(), on = false, raf, last, acc = 0, t = 0;
+  function reset() {
+    S = E.create(E.duelCfg(2, (Math.random() * 1e9) | 0));
+    S.cfg.time = 9999; S.snakes[0].lives = S.snakes[1].lives = 999;
+    S.snakes[0].ctrl = E.makeBot(3, (Math.random() * 1e9) | 0); S.snakes[1].ctrl = E.makeBot(3, (Math.random() * 1e9) | 0);
+  }
+  function frame(ts) {
+    if (!on) return;
+    var dt = Math.min(0.05, (ts - (last || ts)) / 1000); last = ts; t += dt; acc += dt;
+    if (!modals.length) { while (acc >= E.STEP) { E.step(S); acc -= E.STEP; } } else acc = 0;
+    var cv = $('homeCv'), sk = [skinById(D.skin), RIVAL];
+    handleFx(V, S, sk, S.events, t, true); S.events.length = 0;
+    if (S.over || 1 - E.seaLeft(S) > 0.85) reset();
+    drawField(cv, V, S, sk, t, dt);
+    raf = requestAnimationFrame(frame);
+  }
+  return {
+    start: function () { if (on) return; if (!S) reset(); on = true; last = 0; raf = requestAnimationFrame(frame); },
+    stop: function () { on = false; cancelAnimationFrame(raf); }
+  };
+})();
+
+/* ───── game ───── */
+var G = (function () {
+  var S, V = makeView(), meta, raf, last, acc = 0, t = 0, q = [], stopReq = false, started = false, paused = false, endShown = false, cv, endT = 0, lastHud = '';
+  function ctrl(S2, s) { if (q.length) { s.want = q.shift(); } if (stopReq) { s.stop = true; stopReq = false; } }
+  function start(cfg, m) {
+    meta = m; S = E.create(cfg); S.snakes[0].ctrl = ctrl;
+    if (S.snakes[1]) S.snakes[1].ctrl = E.makeBot(cfg.rival, cfg.seed ^ 0x5bd1e995);
+    V = makeView(); q = []; stopReq = false; started = false; paused = false; endShown = false; acc = 0; t = 0; endT = 0; lastHud = '';
+    cv = $('cv');
+    if (cur() !== 'game') go('game'); else show('game');
+    $('hint').innerHTML = esc(T('hint_start')) + (D.set.ctrl === 'swipe' ? '<small>' + esc(T('hint_tap')) + '</small>' : '');
+    $('hint').style.display = '';
+    $('gBar').classList.toggle('duo', !!S.snakes[1]);
+    $('gB2').style.display = S.snakes[1] ? '' : 'none';
+    $('gTg').style.display = S.snakes[1] ? 'none' : '';
+    $('gTg').style.insetInlineStart = (cfg.target * 100) + '%';
+    D.stats.games++; save();
+    cancelAnimationFrame(raf); last = 0; raf = requestAnimationFrame(frame);
+  }
+  function input(d) {
+    if (!S || paused || S.over) return;
+    var p = S.snakes[0];
+    if (!started) { started = true; $('hint').style.display = 'none'; }
+    var lastD = q.length ? q[q.length - 1] : (p.want != null ? p.want : p.dir);
+    if (d === lastD && (q.length || p.moving)) return;
+    if (q.length >= 3) q.shift();
+    q.push(d); sfx.turn();
+  }
+  function stopIn() { if (!S || paused) return; if (!started) return; stopReq = true; }
+  function frame(ts) {
+    if (cur() !== 'game') return;
+    var dt = Math.min(0.05, (ts - (last || ts)) / 1000); last = ts;
+    if (!paused) {
+      t += dt;
+      if (started && !S.over) { acc += dt; var n = 0; while (acc >= E.STEP && n++ < 6) { E.step(S); acc -= E.STEP; } if (n >= 6) acc = 0; }
+      var sk = skins();
+      handleFx(V, S, sk, S.events, t);
+      gameEvents(S.events); S.events.length = 0;
+      if (S.over && !endShown) { endT += dt; if (endT > 0.9) { endShown = true; showResult(); } }
+    }
+    drawField(cv, V, S, skins(), t, paused ? 0 : dt);
+    hud();
+    raf = requestAnimationFrame(frame);
+  }
+  function skins() { return [skinById(D.skin), RIVAL]; }
+  var toastT;
+  function toast(s) { var el = $('toast'); el.textContent = s; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { el.classList.remove('on'); }, 1300); }
+  function gameEvents(ev) {
+    for (var i = 0; i < ev.length; i++) {
+      var e = ev[i];
+      if (e.t === 'cap' && e.id === 1) { sfx.cap(e.pct); vib(15); if (e.pct >= 0.12) toast(T('t_big')); }
+      else if (e.t === 'cap') { if (e.pct > 0.03) tone(300, 0.12, 'triangle', 0.04); }
+      else if (e.t === 'die' && e.id === 1) { sfx.die(); vib([90, 40, 90]); q = []; }
+      else if (e.t === 'die') { tone(500, 0.3, 'sawtooth', 0.05, 120); }
+      else if (e.t === 'cut') { sfx.cut(); vib(40); if (e.by === 1) { toast(T('t_cut')); D.stats.cuts++; } else toast(T('t_cutme')); }
+      else if (e.t === 'life') { sfx.life(); toast(T('t_life')); }
+    }
+  }
+  function hud() {
+    var p = S.snakes[0], r = S.snakes[1], cfg = S.cfg, label, mid, right;
+    if (meta.mode === 'level') label = T('level', { n: meta.n }); else if (meta.mode === 'daily') label = T('daily_res'); else label = T('play_duel') + ' · ' + T('bot' + meta.bot);
+    if (cfg.duel) { var rem = Math.max(0, cfg.time - S.t), mm = Math.floor(rem / 60), ss = Math.floor(rem % 60); mid = '⏱ ' + mm + ':' + (ss < 10 ? '0' : '') + ss; }
+    else mid = Math.floor(E.pct(S, p) * 100) + '% / ' + Math.round(cfg.target * 100) + '%';
+    right = '❤️'.repeat(Math.max(0, Math.min(p.lives, 6)));
+    if (r && cfg.duel) right += ' 💜' + Math.max(0, r.lives);
+    var key = label + mid + right + p.area + (r ? r.area : 0);
+    if (key === lastHud) return; lastHud = key;
+    $('gL').textContent = label; $('gM').innerHTML = '<bdi>' + esc(mid) + '</bdi>'; $('gR').textContent = right;
+    $('gB1').style.width = Math.min(100, E.pct(S, p) * 100) + '%';
+    if (r) { var b2 = $('gB2'); b2.style.width = Math.min(100, E.pct(S, r) * 100) + '%'; b2.style.insetInlineStart = 'auto'; b2.style.insetInlineEnd = '0'; }
+  }
+  function pause(open) {
+    if (!S || S.over) return;
+    paused = true;
+    if (open === false) return;
+    var m = modal('<h3>⏸ ' + T('pause') + '</h3><div class="btns"><button class="btn pri" id="pR">▶ ' + T('resume') + '</button><button class="btn" id="pS">↻ ' + T('restart') + '</button><button class="btn" id="pH">❓ ' + T('rules') + '</button><button class="btn bad" id="pQ">✕ ' + T('quit') + '</button></div>', {
+      onBack: function () { closeModal(m); quit(); }, onClose: function () { paused = false; last = 0; }
+    });
+    m.el.querySelector('#pR').onclick = function () { closeModal(m); };
+    m.el.querySelector('#pS').onclick = function () { closeModal(m); restart(); };
+    m.el.querySelector('#pH').onclick = function () { rulesModal(); };
+    m.el.querySelector('#pQ').onclick = function () { closeModal(m); quit(); };
+  }
+  function quit() { cancelAnimationFrame(raf); paused = true; while (modals.length) closeModal(); if (cur() === 'game') { nav.pop(); show(cur()); } }
+  function restart() {
+    var c = meta.mode === 'level' ? E.levelCfg(meta.n) : meta.mode === 'daily' ? E.dailyCfg(meta.date) : E.duelCfg(meta.bot, meta.seed);
+    start(c, meta);
+  }
+  function showResult() {
+    var p = S.snakes[0], r = S.snakes[1], res = S.result, win = res.r === 'win', html = '', stars = 0, prevStars = totalStars();
+    if (win) sfx.win(); else sfx.lose();
+    vib(win ? [30, 50, 30, 50, 80] : 200);
+    if (meta.mode === 'level') {
+      if (win) { stars = p.deaths === 0 ? 3 : p.deaths === 1 ? 2 : 1; var k = String(meta.n); if (!D.stars[k] || D.stars[k] < stars) D.stars[k] = stars; }
+    } else if (meta.mode === 'daily') {
+      var dd = D.daily;
+      if (dd.date !== meta.date) { dd.date = meta.date; dd.done = false; dd.best = 0; }
+      dd.best = Math.max(dd.best, E.pct(S, p));
+      if (win && !dd.done) { dd.done = true; dd.streak = (dd.last === prevDay(meta.date)) ? dd.streak + 1 : 1; dd.last = meta.date; }
+    } else if (win) D.duel[meta.bot] = (D.duel[meta.bot] || 0) + 1;
+    save();
+    var title = win ? T('win_title') : res.r === 'draw' ? T('draw_title') : T('lose_title');
+    html += '<div style="font-size:54px">' + (win ? '🏆' : res.r === 'draw' ? '🤝' : '🐍💥') + '</div><h3>' + title + '</h3>';
+    if (meta.mode === 'level' && win) { html += '<div class="stars">'; for (var i = 1; i <= 3; i++) html += i <= stars ? '★' : '<span class="off">★</span>'; html += '</div>'; }
+    if (!win) { var why = res.why === 'lives' ? (p.lives <= 0 ? 'why_lives' : 'why_rlives') : 'why_rival'; html += '<p class="mut">' + T(why) + '</p>'; }
+    else if (res.why === 'lives' && r) html += '<p class="mut">' + T('why_rlives') + '</p>';
+    html += '<div style="text-align:start;margin-top:8px"><div class="stat"><span>' + T('res_area') + '</span><b>' + pc(E.pct(S, p)) + '</b></div>';
+    if (r) html += '<div class="stat"><span>' + T('res_rival') + '</span><b>' + pc(E.pct(S, r)) + '</b></div><div class="stat"><span>' + T('res_cuts') + '</span><b><bdi>' + p.cuts + '</bdi></b></div>';
+    html += '<div class="stat"><span>' + T('res_time') + '</span><b><bdi>' + fmtT(S.t) + '</bdi></b></div></div><div class="btns">';
+    var hasNext = meta.mode === 'level' && win && meta.n < 30;
+    if (hasNext) html += '<button class="btn pri" id="rN">▶ ' + T('next') + '</button>';
+    html += '<button class="btn ' + (hasNext ? '' : 'pri') + '" id="rA">↻ ' + T('retry') + '</button><button class="btn" id="rH">' + T('home') + '</button></div>';
+    var m = modal(html, { dismiss: false, onBack: function () { closeModal(m); quit(); } });
+    if (hasNext) m.el.querySelector('#rN').onclick = function () { closeModal(m); meta = { mode: 'level', n: meta.n + 1 }; start(E.levelCfg(meta.n), meta); };
+    m.el.querySelector('#rA').onclick = function () { closeModal(m); if (meta.mode === 'duel') meta.seed = (Math.random() * 1e9) | 0; restart(); };
+    m.el.querySelector('#rH').onclick = function () { closeModal(m); quit(); nav = ['home']; show('home'); };
+    var now = totalStars();
+    SKINS.forEach(function (s) { if (s.need > prevStars && s.need <= now) setTimeout(function () { snack(T('new_skin', { s: T('sk_' + s.id) }), 3000); }, 600); });
+  }
+  // input wiring
+  function setupInput() {
+    var st = $('stage'), sx, sy, t0, moved, pid = null;
+    st.addEventListener('pointerdown', function (e) { if (D.set.ctrl === 'pad' && e.pointerType !== 'mouse') {} pid = e.pointerId; sx = e.clientX; sy = e.clientY; t0 = Date.now(); moved = false; try { st.setPointerCapture(pid); } catch (er) {} ac(); });
+    st.addEventListener('pointermove', function (e) {
+      if (pid !== e.pointerId) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy, th = Math.max(14, (V.cs || 10) * 1.3);
+      if (dx * dx + dy * dy < th * th) return;
+      var d = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0);
+      input(d); sx = e.clientX; sy = e.clientY; moved = true;
+    });
+    function up(e) { if (pid !== e.pointerId) return; pid = null; if (!moved && Date.now() - t0 < 300) stopIn(); }
+    st.addEventListener('pointerup', up); st.addEventListener('pointercancel', function () { pid = null; });
+    document.querySelectorAll('#pad button').forEach(function (b) {
+      b.addEventListener('pointerdown', function (e) { e.preventDefault(); ac(); var d = b.getAttribute('data-d'); if (d === 's') stopIn(); else input(+d); });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (cur() !== 'game' || modals.length) return;
+      var k = e.key, m = { ArrowUp: 0, w: 0, W: 0, ArrowRight: 1, d: 1, D: 1, ArrowDown: 2, s: 2, S: 2, ArrowLeft: 3, a: 3, A: 3 };
+      if (m[k] != null) { e.preventDefault(); input(m[k]); }
+      else if (k === ' ') { e.preventDefault(); if (!started) return; stopIn(); }
+      else if (k === 'p' || k === 'P' || k === 'Escape') pause();
+    });
+    $('gPause').onclick = function () { pause(); };
+    document.addEventListener('visibilitychange', function () { if (document.hidden && cur() === 'game' && S && !S.over && !paused && started) pause(); });
+  }
+  return { start: start, setupInput: setupInput, pauseMenu: function () { if (S && S.over) { quit(); return; } pause(); }, state: function () { return S; } };
+})();
+function fmtT(s) { s = Math.floor(s); return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60); }
+function today() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
+function prevDay(n) { var d = new Date(Math.floor(n / 10000), Math.floor(n / 100) % 100 - 1, n % 100 - 1); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
+
+function rulesHTML() {
+  var ic = ['🏝️', '👆', '🎯', '🐡', '🦀', '✂️', '⭐'];
+  var h = ''; for (var i = 1; i <= 7; i++) h += '<p><span class="ic">' + ic[i - 1] + '</span>' + esc(T('r' + i)) + '</p>';
+  return h;
+}
+function rulesModal() { var m = modal('<h3>' + T('r_title') + '</h3><div class="rules" style="text-align:start">' + rulesHTML() + '</div><div class="btns"><button class="btn pri" id="rOk">' + T('ok') + '</button></div>'); m.el.querySelector('#rOk').onclick = function () { closeModal(m); }; }
+
+/* ───── screens ───── */
+var RENDER = {
+  home: function () {
+    var ts = totalStars();
+    $('hLvSub').innerHTML = '★ <bdi>' + ts + ' / 90</bdi>';
+    var w = 0; for (var k in D.duel) w += D.duel[k] || 0;
+    $('hDuelSub').textContent = T('wins', { n: w });
+    $('hDailySub').textContent = (D.daily.date === today() && D.daily.done) ? T('daily_done') : (D.daily.streak ? T('streak', { n: D.daily.streak }) : '');
+    $('hSkinSub').textContent = T('sk_' + D.skin);
+  },
+  levels: function () {
+    var max = 0; for (var k in D.stars) if (D.stars[k] > 0) max = Math.max(max, +k);
+    var open = max + 3, h = '';
+    for (var n = 1; n <= 30; n++) {
+      var st = D.stars[n] || 0, lock = n > open, rv = E.levelCfg(n).rival;
+      h += '<button class="lt ' + (lock ? 'lock' : 'open') + '" data-lv="' + n + '"' + (lock ? ' aria-disabled="true"' : '') + '>' + (rv ? '<span class="rv">⚔️</span>' : '') + (lock ? '🔒' : '<bdi>' + n + '</bdi>') + '<span class="st">' + (st ? '★★★'.slice(0, st) : '') + '</span></button>';
+    }
+    $('lgrid').innerHTML = h; $('lvStars').innerHTML = '★ <bdi>' + totalStars() + '</bdi>';
+  },
+  duel: function () {
+    var h = ''; for (var i = 1; i <= 4; i++) h += '<button class="bot ' + (D.duelSel === i ? 'sel' : '') + '" data-bot="' + i + '"><b>' + ['🙂', '😎', '😈', '👑'][i - 1] + ' ' + T('bot' + i) + '</b><span>' + T('bot' + i + 'd') + '</span><br><span>' + T('wins', { n: D.duel[i] || 0 }) + '</span></button>';
+    $('bots').innerHTML = h;
+  },
+  daily: function () {
+    var d = today(), dd = D.daily, same = dd.date === d;
+    $('dDate').innerHTML = '<bdi>' + new Date().toLocaleDateString(D.set.lang) + '</bdi>';
+    var info = [];
+    if (same && dd.done) info.push('✅ ' + T('daily_done'));
+    if (same && dd.best) info.push(T('best', { p: '<bdi>' + Math.round(dd.best * 100) + '%</bdi>' }));
+    if (dd.streak) info.push('🔥 ' + T('streak', { n: dd.streak }));
+    $('dInfo').innerHTML = info.join('<br>');
+  },
+  skins: function () {
+    var ts = totalStars(), h = '';
+    SKINS.forEach(function (s) {
+      var lock = ts < s.need, sel = D.skin === s.id;
+      h += '<button class="sk ' + (sel ? 'sel' : '') + (lock ? ' lock' : '') + '" data-skin="' + s.id + '"><canvas data-prev="' + s.id + '"></canvas><b>' + T('sk_' + s.id) + '</b><span class="mut">' + (lock ? '🔒 ' + T('skin_need', { n: s.need }) : sel ? T('skin_on') : T('skin_use')) + '</span></button>';
+    });
+    $('sgrid').innerHTML = h; $('skStars').textContent = T('stars_have', { n: ts });
+    requestAnimationFrame(function () { document.querySelectorAll('[data-prev]').forEach(function (c) { drawPreview(c, skinById(c.getAttribute('data-prev'))); }); });
+  },
+  rules: function () { $('rulesBody').innerHTML = '<div class="card">' + rulesHTML() + '</div>'; },
+  settings: renderSettings,
+  about: renderAbout
+};
+function drawPreview(c, sk) {
+  var r = c.getBoundingClientRect(), dpr = Math.min(3, window.devicePixelRatio || 1);
+  c.width = r.width * dpr; c.height = r.height * dpr;
+  var S = { W: 12, H: 4, grid: new Uint8Array(48), snakes: [] };
+  var V = { cs: Math.min(r.width / 12, r.height / 4) };
+  var x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, (r.width - V.cs * 12) / 2 * dpr, (r.height - V.cs * 4) / 2 * dpr);
+  x.fillStyle = sk.land; x.globalAlpha = .35; x.fillRect(0, 0, V.cs * 12, V.cs * 4); x.globalAlpha = 1;
+  var cells = [[1, 2], [2, 2], [3, 2], [3, 1], [4, 1], [5, 1], [6, 1], [6, 2], [7, 2], [8, 2], [9, 2]];
+  var s = { id: 1, x: 10, y: 2, dir: 1, trail: [], hist: [], moving: false, dead: 0, lives: 1, inv: 0, acc: 0 };
+  for (var i = cells.length - 1; i >= 0; i--) s.hist.push(cells[i][1] * 12 + cells[i][0]);
+  s.hist = s.hist.slice(0, 11);
+  // custom draw with long body
+  var pts = cells.concat([[10, 2]]);
+  x.lineJoin = 'round'; x.lineCap = 'round';
+  var path = function () { x.beginPath(); pts.forEach(function (p, i) { var px = (p[0] + .5) * V.cs, py = (p[1] + .5) * V.cs; if (i) x.lineTo(px, py); else x.moveTo(px, py); }); };
+  path(); x.strokeStyle = sk.out; x.lineWidth = V.cs * .9; x.stroke(); path(); x.strokeStyle = sk.body; x.lineWidth = V.cs * .66; x.stroke();
+  var S2 = { W: 12, H: 4, grid: new Uint8Array(48).fill(1), snakes: [s] };
+  s.hist = []; s.x = 10; s.y = 2;
+  // reuse head drawing via drawSnake on a 2-point body
+  s.hist = [2 * 12 + 9];
+  drawSnake(x, V, S2, s, sk, 0.5);
+  // pattern along body
+  pts.forEach(function (p, i) { if (i === pts.length - 1) return; var px = (p[0] + .5) * V.cs, py = (p[1] + .5) * V.cs; if (sk.pat === 'rainbow') { x.fillStyle = 'hsl(' + (i * 40) + ',90%,65%)'; x.beginPath(); x.arc(px, py, V.cs * .2, 0, 6.283); x.fill(); } else if (sk.pat === 'dots' || sk.pat === 'diamond') { x.fillStyle = sk.pc; x.beginPath(); x.arc(px, py, V.cs * .14, 0, 6.283); x.fill(); } else { x.strokeStyle = sk.pc; x.lineWidth = V.cs * .14; x.beginPath(); x.moveTo(px, py - V.cs * .3); x.lineTo(px, py + V.cs * .3); x.stroke(); } });
+}
+document.addEventListener('click', function (e) {
+  var lv = e.target.closest('[data-lv]');
+  if (lv) { if (lv.classList.contains('lock')) { snack(T('locked')); return; } sfx.click(); var n = +lv.getAttribute('data-lv'); G.start(E.levelCfg(n), { mode: 'level', n: n }); return; }
+  var bt = e.target.closest('[data-bot]'); if (bt) { D.duelSel = +bt.getAttribute('data-bot'); save(); RENDER.duel(); sfx.click(); return; }
+  var sk = e.target.closest('[data-skin]');
+  if (sk) { var s = skinById(sk.getAttribute('data-skin')); if (totalStars() < s.need) { snack(T('skin_need', { n: s.need })); return; } D.skin = s.id; save(); RENDER.skins(); sfx.click(); }
+});
+
+function renderSettings() {
+  var s = D.set, h = '<div class="card"><div class="fld"><label>' + T('s_name') + '</label><input id="sName" maxlength="30" placeholder="' + esc(T('s_name_ph')) + '" value="' + esc(s.name || '') + '"></div>';
+  h += '<div class="fld"><label>' + T('s_lang') + '</label><div class="chips">';
+  ['he', 'en', 'ru', 'es', 'ar'].forEach(function (l) { h += '<button class="chip ' + (s.lang === l ? 'on' : '') + '" data-lang="' + l + '">' + LANG[l].name + '</button>'; });
+  h += '</div></div><div class="fld"><label>' + T('s_theme') + '</label><div class="chips">';
+  THEMES.forEach(function (th) { h += '<button class="chip ' + (s.theme === th ? 'on' : '') + '" data-theme="' + th + '">' + T('th_' + th) + '</button>'; });
+  h += '</div></div><div class="fld"><label>' + T('s_ctrl') + '</label><div class="chips"><button class="chip ' + (s.ctrl === 'swipe' ? 'on' : '') + '" data-ctrl="swipe">👆 ' + T('ctrl_swipe') + '</button><button class="chip ' + (s.ctrl === 'pad' ? 'on' : '') + '" data-ctrl="pad">🎮 ' + T('ctrl_pad') + '</button></div></div>';
+  h += '<div class="sw"><span>🔊 ' + T('s_sound') + '</span><button class="tg2 ' + (s.sound ? 'on' : '') + '" data-tog="sound" aria-label="sound"></button></div>';
+  h += '<div class="sw"><span>📳 ' + T('s_vib') + '</span><button class="tg2 ' + (s.vib ? 'on' : '') + '" data-tog="vib" aria-label="vibration"></button></div></div>';
+  h += '<div class="card"><button class="btn" id="sTut">📖 ' + T('s_tutorial') + '</button></div>';
+  h += '<div class="card"><label style="font-weight:700;display:block;margin-bottom:8px">' + T('s_backup') + '</label><div style="display:grid;gap:9px"><button class="btn" id="sExp">⬇️ ' + T('s_export') + '</button><button class="btn" id="sImp">⬆️ ' + T('s_import') + '</button></div></div>';
+  h += '<div class="card"><button class="btn bad" id="sReset">🗑️ ' + T('s_reset') + '</button></div>';
+  $('setBody').innerHTML = h;
+  $('sName').oninput = function () { D.set.name = this.value.trim(); save(); };
+  $('sTut').onclick = function () { tutorial(); };
+  $('sExp').onclick = exportBackup;
+  $('sImp').onclick = function () { $('fileIn').click(); };
+  $('sReset').onclick = function () { confirmBox(T('reset_c1'), function () { confirmBox(T('reset_c2'), function () { store.del(KEY); D = defData(); D.tut = true; save(); applyLang(); applyTheme(); renderSettings(); }); }); };
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-lang]'); if (b) { D.set.lang = b.getAttribute('data-lang'); save(); applyLang(); renderSettings(); return; }
+  b = e.target.closest('[data-theme]'); if (b) { D.set.theme = b.getAttribute('data-theme'); save(); applyTheme(); renderSettings(); return; }
+  b = e.target.closest('[data-ctrl]'); if (b) { D.set.ctrl = b.getAttribute('data-ctrl'); save(); applyTheme(); renderSettings(); return; }
+  b = e.target.closest('[data-tog]'); if (b) { var k = b.getAttribute('data-tog'); D.set[k] = !D.set[k]; save(); b.classList.toggle('on', D.set[k]); if (k === 'sound' && D.set.sound) sfx.click(); if (k === 'vib') vib(30); }
+});
+function exportBackup() {
+  var data = JSON.stringify({ app: 'snakenest', version: APP_VERSION, user: D.set.name || '', date: new Date().toISOString(), data: D }, null, 1);
+  var blob = new Blob([data], { type: 'application/json' }), a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'snakenest-backup-' + today() + '.json'; document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000); snack(T('exported'));
+}
+$('fileIn').addEventListener('change', function () {
+  var f = this.files[0]; this.value = ''; if (!f) return;
+  var rd = new FileReader();
+  rd.onload = function () {
+    try { var j = JSON.parse(rd.result); if (j.app !== 'snakenest' || !j.data || j.data.v !== 1) throw 0;
+      confirmBox(T('import_c'), function () { D = merge(defData(), j.data); save(); applyLang(); applyTheme(); renderSettings(); snack(T('import_ok')); });
+    } catch (e) { snack(T('import_bad')); }
+  };
+  rd.readAsText(f);
+});
+function renderAbout() {
+  var h = '<div class="card" style="text-align:center"><img class="abicon" src="icon-192.png" alt=""><h2 style="margin:0">SnakeNest</h2><div class="mut">v<bdi>' + APP_VERSION + '</bdi></div></div>';
+  h += '<div class="card"><div class="kv"><span>' + T('ab_version') + '</span><bdi>' + APP_VERSION + '</bdi></div><div class="kv"><span>' + T('ab_dev') + '</span><span>Barak Aflalo</span></div><div class="kv"><span>' + T('ab_platform') + '</span><span>PWA · HTML5</span></div><div class="kv"><span>' + T('ab_storage') + '</span><span>' + T('ab_storage_v') + '</span></div><div class="kv"><span>' + T('ab_license') + '</span><span>© AppNest 2026</span></div></div>';
+  h += '<div style="display:grid;gap:9px"><button class="btn" id="aStore">🏪 ' + T('ab_store') + '</button><button class="btn" id="aShare">📤 ' + T('ab_share') + '</button><button class="btn" id="aFb">✉️ ' + T('ab_feedback') + '</button><button class="btn" id="aGuide">📖 ' + T('ab_guide') + '</button><button class="btn" id="aPriv">🔒 ' + T('ab_privacy') + '</button></div>';
+  h += '<p class="mut" style="text-align:center;margin-top:16px;line-height:1.5">' + T('ab_disc') + '</p>';
+  $('abBody').innerHTML = h;
+  $('aStore').onclick = function () { openUrl('https://appnest-store.pages.dev/'); };
+  $('aShare').onclick = function () {
+    var txt = D.set.name ? T('share_text', { name: D.set.name }) : T('share_anon'), url = location.href.split('#')[0];
+    if (navigator.share) navigator.share({ title: 'SnakeNest', text: txt, url: url }).catch(function () {});
+    else openUrl('https://wa.me/?text=' + encodeURIComponent(txt + ' ' + url));
+  };
+  $('aFb').onclick = function () { location.href = 'mailto:appnest55@gmail.com?subject=' + encodeURIComponent('SnakeNest ' + APP_VERSION + (D.set.name ? ' · ' + D.set.name : '')); };
+  $('aGuide').onclick = function () { tutorial(); };
+  $('aPriv').onclick = function () { openUrl('privacy_policy.html'); };
+}
+function openUrl(u) { var w = window.open(u, '_blank'); if (!w) location.href = u; }
+
+/* ───── tutorial ───── */
+function tutorial() {
+  var i = 1, ill = ['🐍', '👆', '🏝️', '🐡🦀', '⚔️'];
+  var m = modal('', { cls: 'tut', dismiss: false, onClose: function () { D.tut = true; save(); } });
+  function draw() {
+    var md = m.el.querySelector('.md'), dots = '';
+    for (var k = 1; k <= 5; k++) dots += '<i class="' + (k === i ? 'on' : '') + '"></i>';
+    md.innerHTML = '<div class="ill">' + ill[i - 1] + '</div><h3>' + T('tut' + i + 't') + '</h3><p style="line-height:1.6">' + T('tut' + i + 'b') + '</p><div class="dots">' + dots + '</div><div class="btns"><button class="btn pri" id="tN">' + (i < 5 ? T('nextb') : T('done')) + '</button>' + (i < 5 ? '<button class="btn" id="tS">' + T('skip') + '</button>' : '') + '</div>';
+    md.querySelector('#tN').onclick = function () { if (i < 5) { i++; draw(); } else closeModal(m); };
+    var sk = md.querySelector('#tS'); if (sk) sk.onclick = function () { closeModal(m); };
+  }
+  draw();
+}
+
+/* ───── boot ───── */
+$('hTheme').onclick = function () { var i = THEMES.indexOf(D.set.theme); D.set.theme = THEMES[(i + 1) % THEMES.length]; save(); applyTheme(); snack(T('th_' + D.set.theme), 1000); };
+$('hSet').onclick = function () { sfx.click(); go('settings'); };
+$('hAbout').onclick = function () { sfx.click(); go('about'); };
+$('duelGo').onclick = function () { sfx.click(); var seed = (Math.random() * 1e9) | 0; G.start(E.duelCfg(D.duelSel, seed), { mode: 'duel', bot: D.duelSel, seed: seed }); };
+$('dailyGo').onclick = function () { sfx.click(); var d = today(); G.start(E.dailyCfg(d), { mode: 'daily', date: d }); };
+G.setupInput();
+applyTheme(); applyLang(); show('home'); syncHistory();
+if (!D.tut) setTimeout(tutorial, 400);
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
+window.__sk = { D: D, G: G, E: E, T: T, go: go, back: goBack, nav: function () { return nav; }, modals: function () { return modals.length; } };
+})();
+</script>
+</body>
+</html>
